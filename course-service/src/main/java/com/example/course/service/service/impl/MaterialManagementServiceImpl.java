@@ -1,6 +1,7 @@
 package com.example.course.service.service.impl;
 
 import com.example.course.service.dto.MaterialDTO;
+import com.example.course.service.exception.ResourceNotFoundException;
 import com.example.course.service.mapper.MaterialMapper;
 import com.example.course.service.model.material.Material;
 import com.example.course.service.repository.IMaterialRepository;
@@ -31,7 +32,7 @@ public class MaterialManagementServiceImpl implements IMaterialManagementService
     @Override
     public void updateMaterial(String materialId, MaterialDTO dto) {
         Material existing = materialRepository.findById(materialId)
-                .orElseThrow(() -> new RuntimeException("Material not found with id: " + materialId));
+                .orElseThrow(() -> new ResourceNotFoundException("Material not found with id: " + materialId));
         materialMapper.updateEntityFromDTO(existing, dto);
 
         materialRepository.save(existing);
@@ -39,6 +40,9 @@ public class MaterialManagementServiceImpl implements IMaterialManagementService
 
     @Override
     public void deleteMaterial(String materialId) {
+        if (!materialRepository.existsById(materialId)) {
+            throw new ResourceNotFoundException("Cannot delete. Material not found with id: " + materialId);
+        }
         materialRepository.deleteById(materialId);
     }
 

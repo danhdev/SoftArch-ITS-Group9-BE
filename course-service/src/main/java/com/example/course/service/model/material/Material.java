@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
+@Table(name = "materials")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE) // Lưu tất cả vào 1 bảng, phân loại bằng cột discriminator
 @DiscriminatorColumn(name = "material_type")
 @Getter
@@ -16,6 +17,6 @@ public abstract class Material {
     private String chapterId;
     private String title;
 
-    @Column(insertable = false, updatable = false)
+    @Column(name = "material_type", insertable = false, updatable = false)
     private String type;
 }
