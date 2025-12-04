@@ -2,6 +2,8 @@ package com.example.course.service.model.chapter;
 
 import java.util.List;
 
+import org.springframework.stereotype.Component;
+
 import com.example.course.service.model.material.Material;
 
 import jakarta.persistence.Entity;
@@ -13,6 +15,7 @@ import lombok.Data;
 
 @Entity
 @Data
+@Component
 public class Chapter {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
