@@ -52,6 +52,7 @@ public class MaterialMapper {
         if (entity == null) return null;
 
         MaterialDTO dto = new MaterialDTO();
+        dto.setId(entity.getId());
         dto.setTitle(entity.getTitle());
 
         // Mapping dựa trên class cụ thể
