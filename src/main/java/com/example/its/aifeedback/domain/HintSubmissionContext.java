@@ -1,5 +1,6 @@
 package com.example.its.aifeedback.domain;
 
+import com.example.its.aifeedback.dto.MaterialDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,5 +29,7 @@ public class HintSubmissionContext {
     private String difficulty;
 
     private List<String> previousHints;
+
+    private List<MaterialDTO> materials;
 }
 

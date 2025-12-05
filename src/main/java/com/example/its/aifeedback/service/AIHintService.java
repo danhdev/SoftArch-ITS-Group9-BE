@@ -10,6 +10,4 @@ public interface AIHintService {
     HintResponseDTO generateHint(HintRequestDTO requestDTO);
 
     List<HintResponseDTO> getHintHistory(Long studentId, Long questionId);
-
-    List<HintResponseDTO> getStudentHintHistory(Long studentId);
 }

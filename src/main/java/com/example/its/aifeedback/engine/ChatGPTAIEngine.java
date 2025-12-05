@@ -309,7 +309,7 @@ public class ChatGPTAIEngine implements AIEngine {
         String hintLevel = "cơ bản";
 
         if (previousHintCount == 0) {
-            hintLevel = "nhẹ nhàng, chỉ gợi ý hướng suy nghĩ";
+            hintLevel = "chung chung, chỉ gợi ý hướng suy nghĩ";
         } else if (previousHintCount == 1) {
             hintLevel = "rõ ràng hơn, chỉ ra phương pháp giải";
         } else if (previousHintCount >= 2) {
@@ -325,6 +325,38 @@ public class ChatGPTAIEngine implements AIEngine {
             previousHintsText.append("\nHọc sinh vẫn chưa tìm ra câu trả lời, hãy đưa ra gợi ý mới dựa trên những gợi ý trước đó.");
         }
 
+        StringBuilder materialsText = new StringBuilder();
+        if (ctx.getMaterials() != null && !ctx.getMaterials().isEmpty()) {
+            materialsText.append("\n\nTÀI LIỆU KHÓA HỌC LIÊN QUAN:\n");
+            for (int i = 0; i < ctx.getMaterials().size(); i++) {
+                var material = ctx.getMaterials().get(i);
+                materialsText.append(String.format("%d. ", i + 1));
+
+                if (material.getTitle() != null && !material.getTitle().isEmpty()) {
+                    materialsText.append(String.format("Tiêu đề: %s", material.getTitle()));
+                }
+
+                if (material.getType() != null && !material.getType().isEmpty()) {
+                    materialsText.append(String.format(" (Loại: %s)", material.getType()));
+                }
+
+                materialsText.append("\n");
+
+                if (material.getContentOrUrl() != null && !material.getContentOrUrl().isEmpty()) {
+                    String content = material.getContentOrUrl();
+//                    if (content.length() > 200) {
+//                        content = content.substring(0, 200) + "...";
+//                    }
+                    materialsText.append(String.format("   Nội dung: %s\n", content));
+                }
+
+                if (material.getMetadata() != null && !material.getMetadata().isEmpty()) {
+                    materialsText.append(String.format("   Metadata: %s\n", material.getMetadata()));
+                }
+            }
+            materialsText.append("\nHãy tham khảo tài liệu trên để đưa ra gợi ý phù hợp với nội dung khóa học.");
+        }
+
         return String.format("""
                 Bạn là một giáo viên AI thân thiện trong hệ thống Intelligent Tutoring System.
                 Học sinh đang gặp khó khăn với câu hỏi và cần gợi ý.
@@ -334,12 +366,14 @@ public class ChatGPTAIEngine implements AIEngine {
                 - Chủ đề: %s
                 - Độ khó: %s
                 - Đáp án: %s
-                - Câu hỏi: %s%s
+                - Câu hỏi: %s%s%s
 
                 Yêu cầu:
                 - Đưa ra gợi ý ở mức độ: %s
                 - KHÔNG tiết lộ đáp án trực tiếp
                 - Gợi ý cần giúp học sinh tự tìm ra câu trả lời
+                - Nếu có tài liệu khóa học, hãy dựa vào tài liệu đó để đưa ra gợi ý phù hợp
+                - Nếu đây là gợi ý đầu tiên, chỉ gợi ý chung chung, không quá cụ thể
                 - Nếu đã có gợi ý trước, hãy đưa ra gợi ý mới không trùng lặp và chi tiết hơn
                 - Sử dụng tiếng Việt thân thiện với emoji phù hợp
                 - Trả về chỉ nội dung gợi ý (không cần JSON)
@@ -352,6 +386,7 @@ public class ChatGPTAIEngine implements AIEngine {
                 ctx.getCorrectAnswer() != null ? ctx.getCorrectAnswer() : "Chưa cung cấp",
                 ctx.getQuestionText(),
                 previousHintsText.toString(),
+                materialsText.toString(),
                 hintLevel);
     }
 

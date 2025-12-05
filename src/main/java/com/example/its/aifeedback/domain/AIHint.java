@@ -29,6 +29,9 @@ public class AIHint {
     @Column(name = "hint", columnDefinition = "TEXT")
     private String hint;
 
+    @Column(name = "subject_id")
+    private String subjectId;
+
     @Column(name = "subject")
     private String subject;
 

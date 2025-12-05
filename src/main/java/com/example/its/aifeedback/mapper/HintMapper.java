@@ -4,6 +4,7 @@ import com.example.its.aifeedback.domain.AIHint;
 import com.example.its.aifeedback.domain.HintSubmissionContext;
 import com.example.its.aifeedback.dto.HintRequestDTO;
 import com.example.its.aifeedback.dto.HintResponseDTO;
+import com.example.its.aifeedback.dto.MaterialDTO;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -20,6 +21,7 @@ public class HintMapper {
         return AIHint.builder()
                 .studentId(requestDTO.getStudentId())
                 .questionId(requestDTO.getQuestionId())
+                .subjectId(requestDTO.getSubjectId())
                 .subject(requestDTO.getSubject())
                 .topic(requestDTO.getTopic())
                 .difficulty(requestDTO.getDifficulty())
@@ -40,7 +42,26 @@ public class HintMapper {
                 .build();
     }
 
+    public static HintResponseDTO toDTO(AIHint entity, Integer hintCount) {
+        if (entity == null) {
+            return null;
+        }
+
+        return HintResponseDTO.builder()
+                .hintId(entity.getId())
+                .questionId(entity.getQuestionId())
+                .studentId(entity.getStudentId())
+                .hint(entity.getHint())
+                .hintCount(hintCount)
+                .createdAt(entity.getCreatedAt() != null ? entity.getCreatedAt().format(DATE_FORMATTER) : null)
+                .build();
+    }
+
     public static HintSubmissionContext toContext(HintRequestDTO requestDTO, List<String> previousHints) {
+        return toContext(requestDTO, previousHints, null);
+    }
+
+    public static HintSubmissionContext toContext(HintRequestDTO requestDTO, List<String> previousHints, List<MaterialDTO> materials) {
         if (requestDTO == null) {
             return null;
         }
@@ -54,6 +75,8 @@ public class HintMapper {
                 .topic(requestDTO.getTopic())
                 .difficulty(requestDTO.getDifficulty())
                 .previousHints(previousHints)
+                .materials(materials)
                 .build();
     }
 }
+

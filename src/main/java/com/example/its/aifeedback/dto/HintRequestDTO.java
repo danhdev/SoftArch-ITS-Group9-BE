@@ -25,11 +25,11 @@ public class HintRequestDTO {
     @NotBlank(message = "Correct answer is required")
     private String correctAnswer;
 
+    private String subjectId;
+
     private String subject;
 
     private String topic;
 
     private String difficulty;
-
-    private Integer hintLimit;
 }
