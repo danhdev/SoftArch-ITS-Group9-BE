@@ -6,11 +6,19 @@ import com.example.course.service.mapper.MaterialMapper;
 import com.example.course.service.model.material.Material;
 import com.example.course.service.repository.IMaterialRepository;
 import com.example.course.service.service.IMaterialManagementService;
+import com.example.course.service.util.content.ContentReader;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.minio.GetObjectArgs;
+import io.minio.MinioClient;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 
+import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 
@@ -21,6 +29,9 @@ public class MaterialManagementServiceImpl implements IMaterialManagementService
 
     private final IMaterialRepository materialRepository;
     private final MaterialMapper materialMapper;
+    private final ContentReader contentReader;
+    private final MinioClient minioClient;
+    private final ObjectMapper objectMapper;
 
     @Override
     public void createMaterial(String chapterId, MaterialDTO dto) {
@@ -54,4 +65,23 @@ public class MaterialManagementServiceImpl implements IMaterialManagementService
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public Map<String, Object> getContent(String id) {
+        try (InputStream is = minioClient.getObject(
+                GetObjectArgs.builder()
+                        .bucket("materials")
+                        .object(id)
+                        .build())) {
+
+            JSONObject contentPDF = contentReader.readContent(is, id);
+            return objectMapper.readValue(
+                    contentPDF.toString(),
+                    new TypeReference<>() {}
+            );
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to read content for id: " + id, e);
+        }
+
+    }
 }

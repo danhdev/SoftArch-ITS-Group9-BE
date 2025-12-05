@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -71,6 +72,20 @@ public class CoreCourseController {
                         .status(HttpStatus.NO_CONTENT.value())
                         .message("Delete material successfully")
                         .data("")
+                        .build()
+        );
+    }
+
+    @Operation(summary = "Lấy nội dung 1 Material ")
+    @GetMapping("/chapters/{chapterId}/content")
+    public ResponseEntity<ResponseObject> getContentMaterialPDF(@PathVariable String chapterId) {
+        Map<String, Object> contentPDF = materialService.getContent(chapterId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ResponseObject.builder()
+                        .status(HttpStatus.OK.value())
+                        .message("Get content for AI service successfully")
+                        .data(contentPDF)
                         .build()
         );
     }
