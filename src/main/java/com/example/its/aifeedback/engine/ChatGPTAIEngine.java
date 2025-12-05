@@ -1,6 +1,7 @@
 package com.example.its.aifeedback.engine;
 
 import com.example.its.aifeedback.domain.AIFeedback;
+import com.example.its.aifeedback.domain.ExplainSubmissionContext;
 import com.example.its.aifeedback.domain.HintSubmissionContext;
 import com.example.its.aifeedback.domain.LearningRecommendation;
 import com.example.its.aifeedback.domain.SubmissionContext;
@@ -99,6 +100,22 @@ public class ChatGPTAIEngine implements AIEngine {
         } catch (Exception e) {
             logger.error("Error calling ChatGPT API: {}. Using fallback.", e.getMessage());
             return fallbackEngine.generateHint(ctx);
+        }
+    }
+
+    @Override
+    public String generateExplanation(ExplainSubmissionContext ctx) {
+        if (apiKey == null || apiKey.isEmpty() || apiKey.equals("your-openai-api-key-here")) {
+            logger.warn("OpenAI API key not configured. Using fallback rule-based engine.");
+            return fallbackEngine.generateExplanation(ctx);
+        }
+
+        try {
+            String prompt = buildExplanationPrompt(ctx);
+            return callChatGPT(prompt);
+        } catch (Exception e) {
+            logger.error("Error calling ChatGPT API for explanation: {}. Using fallback.", e.getMessage());
+            return fallbackEngine.generateExplanation(ctx);
         }
     }
 
@@ -388,6 +405,65 @@ public class ChatGPTAIEngine implements AIEngine {
                 previousHintsText.toString(),
                 materialsText.toString(),
                 hintLevel);
+    }
+
+    private String buildExplanationPrompt(ExplainSubmissionContext ctx) {
+        StringBuilder materialContentText = new StringBuilder();
+        if (ctx.getMaterialContent() != null && !ctx.getMaterialContent().isEmpty()) {
+            materialContentText.append("\n📚 NỘI DUNG TÀI LIỆU:\n");
+
+            if (ctx.getFileName() != null && !ctx.getFileName().isEmpty()) {
+                materialContentText.append(String.format("Tên tài liệu: %s\n", ctx.getFileName()));
+            }
+
+            if (ctx.getPages() != null && !ctx.getPages().isEmpty()) {
+                materialContentText.append(String.format("Số trang: %s\n", ctx.getPages()));
+            }
+
+            materialContentText.append("\nNội dung:\n");
+            materialContentText.append(ctx.getMaterialContent());
+            materialContentText.append("\n");
+        }
+
+        StringBuilder previousQAText = new StringBuilder();
+        if (ctx.getPreviousQuestions() != null && !ctx.getPreviousQuestions().isEmpty() &&
+            ctx.getPreviousExplanations() != null && !ctx.getPreviousExplanations().isEmpty()) {
+
+            previousQAText.append("\n\n💬 CÁC CÂU HỎI VÀ GIẢI THÍCH TRƯỚC ĐÓ:\n");
+            int count = Math.min(ctx.getPreviousQuestions().size(), ctx.getPreviousExplanations().size());
+
+            for (int i = 0; i < count; i++) {
+                previousQAText.append(String.format("\n--- Câu hỏi %d ---\n", i + 1));
+                previousQAText.append(String.format("❓ Câu hỏi: %s\n", ctx.getPreviousQuestions().get(i)));
+                previousQAText.append(String.format("💡 Giải thích: %s\n", ctx.getPreviousExplanations().get(i)));
+            }
+
+            previousQAText.append("\n⚠️ Học sinh vẫn chưa hiểu rõ tài liệu này và có câu hỏi mới. Hãy giải thích theo góc độ khác hoặc chi tiết hơn.");
+        }
+
+        return String.format("""
+                Bạn là một giáo viên AI thân thiện trong hệ thống Intelligent Tutoring System.
+                Học sinh đang học một tài liệu và có câu hỏi cần giải thích.
+
+                %s%s
+
+                ❓ CÂU HỎI CỦA HỌC SINH:
+                %s
+
+                YÊU CẦU:
+                - Dựa vào NỘI DUNG TÀI LIỆU ở trên để giải thích
+                - Giải thích dễ hiểu, phù hợp với trình độ học sinh
+                - Nếu có câu hỏi trước đó, đừng lặp lại giải thích cũ mà hãy bổ sung thêm góc nhìn mới
+                - Có thể đưa ra ví dụ minh họa để học sinh dễ hiểu hơn
+                - Khuyến khích học sinh tự suy nghĩ và đặt câu hỏi tiếp
+                - Sử dụng tiếng Việt thân thiện với emoji phù hợp
+                - Trả về CHỈ nội dung giải thích (không cần JSON)
+
+                GIẢI THÍCH:
+                """,
+                materialContentText.toString(),
+                previousQAText.toString(),
+                ctx.getStudentQuestion() != null ? ctx.getStudentQuestion() : "Chưa có câu hỏi");
     }
 
     /**

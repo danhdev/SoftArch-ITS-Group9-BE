@@ -67,8 +67,6 @@ public class HintMapper {
         }
 
         return HintSubmissionContext.builder()
-                .studentId(requestDTO.getStudentId())
-                .questionId(requestDTO.getQuestionId())
                 .questionText(requestDTO.getQuestionText())
                 .correctAnswer(requestDTO.getCorrectAnswer())
                 .subject(requestDTO.getSubject())

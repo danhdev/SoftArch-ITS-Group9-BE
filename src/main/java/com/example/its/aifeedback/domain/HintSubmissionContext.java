@@ -14,10 +14,6 @@ import java.util.List;
 @Builder
 public class HintSubmissionContext {
 
-    private Long studentId;
-
-    private Long questionId;
-
     private String questionText;
 
     private String correctAnswer;

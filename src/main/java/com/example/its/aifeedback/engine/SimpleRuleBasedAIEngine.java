@@ -1,6 +1,7 @@
 package com.example.its.aifeedback.engine;
 
 import com.example.its.aifeedback.domain.AIFeedback;
+import com.example.its.aifeedback.domain.ExplainSubmissionContext;
 import com.example.its.aifeedback.domain.HintSubmissionContext;
 import com.example.its.aifeedback.domain.LearningRecommendation;
 import com.example.its.aifeedback.domain.SubmissionContext;
@@ -109,6 +110,55 @@ public class SimpleRuleBasedAIEngine implements AIEngine {
         } else {
             return generateDetailedHint(ctx);
         }
+    }
+
+    @Override
+    public String generateExplanation(ExplainSubmissionContext ctx) {
+        StringBuilder explanation = new StringBuilder();
+
+        explanation.append("📖 Giải thích:\n\n");
+
+        if (ctx.getMaterialContent() != null && !ctx.getMaterialContent().isEmpty()) {
+            explanation.append("Dựa trên tài liệu học tập, đây là giải thích cho câu hỏi của bạn:\n\n");
+
+            if (ctx.getStudentQuestion() != null && !ctx.getStudentQuestion().isEmpty()) {
+                explanation.append("❓ Câu hỏi: ").append(ctx.getStudentQuestion()).append("\n\n");
+            }
+
+            explanation.append("💡 ");
+
+            int previousCount = ctx.getPreviousQuestions() != null ? ctx.getPreviousQuestions().size() : 0;
+            if (previousCount == 0) {
+                explanation.append("Hãy xem lại nội dung tài liệu một cách cẩn thận. ");
+                explanation.append("Tìm các từ khóa liên quan đến câu hỏi của bạn trong tài liệu. ");
+                explanation.append("Thử kết nối các khái niệm với nhau để hiểu rõ hơn.\n\n");
+            } else if (previousCount == 1) {
+                explanation.append("Để hiểu rõ hơn, hãy suy nghĩ về câu hỏi từ góc độ khác. ");
+                explanation.append("So sánh các ví dụ trong tài liệu với tình huống cụ thể bạn đang thắc mắc. ");
+                explanation.append("Đôi khi việc vẽ sơ đồ hoặc viết ra các bước có thể giúp làm rõ khái niệm.\n\n");
+            } else {
+                explanation.append("Hãy thử phân tích chi tiết từng phần của câu hỏi. ");
+                explanation.append("Xác định các khái niệm chính, sau đó tìm định nghĩa và ví dụ trong tài liệu. ");
+                explanation.append("Nếu vẫn chưa rõ, hãy thử giải thích lại bằng lời của bạn để kiểm tra sự hiểu biết.\n\n");
+            }
+
+            explanation.append("📚 Gợi ý: Đọc kỹ phần liên quan trong tài liệu, ");
+            explanation.append("tìm các ví dụ minh họa, và thử áp dụng vào trường hợp cụ thể. ");
+            explanation.append("Đừng ngại đặt thêm câu hỏi nếu vẫn chưa hiểu rõ!");
+
+        } else {
+            explanation.append("⚠️ Hiện tại chưa có nội dung tài liệu để tham khảo. ");
+            explanation.append("Tuy nhiên, đối với câu hỏi: \"");
+            explanation.append(ctx.getStudentQuestion() != null ? ctx.getStudentQuestion() : "câu hỏi của bạn");
+            explanation.append("\", hãy thử:\n\n");
+            explanation.append("1. Xác định các từ khóa chính trong câu hỏi\n");
+            explanation.append("2. Nghĩ về kiến thức nền tảng liên quan\n");
+            explanation.append("3. Kết nối các khái niệm với nhau\n");
+            explanation.append("4. Tìm kiếm thêm tài liệu tham khảo nếu cần\n\n");
+            explanation.append("💪 Hãy tiếp tục học tập và đặt câu hỏi!");
+        }
+
+        return explanation.toString();
     }
 
     // ========== Private Helper Methods ==========
