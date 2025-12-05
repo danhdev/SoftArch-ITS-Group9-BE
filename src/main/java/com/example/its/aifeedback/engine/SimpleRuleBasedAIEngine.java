@@ -1,6 +1,7 @@
 package com.example.its.aifeedback.engine;
 
 import com.example.its.aifeedback.domain.AIFeedback;
+import com.example.its.aifeedback.domain.HintSubmissionContext;
 import com.example.its.aifeedback.domain.LearningRecommendation;
 import com.example.its.aifeedback.domain.SubmissionContext;
 import org.springframework.stereotype.Component;
@@ -97,6 +98,19 @@ public class SimpleRuleBasedAIEngine implements AIEngine {
         return recommendations;
     }
 
+    @Override
+    public String generateHint(HintSubmissionContext ctx) {
+        int previousHintCount = ctx.getPreviousHints() != null ? ctx.getPreviousHints().size() : 0;
+
+        if (previousHintCount == 0) {
+            return generateBasicHint(ctx);
+        } else if (previousHintCount == 1) {
+            return generateIntermediateHint(ctx);
+        } else {
+            return generateDetailedHint(ctx);
+        }
+    }
+
     // ========== Private Helper Methods ==========
 
     private String normalize(String text) {
@@ -183,5 +197,29 @@ public class SimpleRuleBasedAIEngine implements AIEngine {
 
         return "💡 Hint: Break down the problem into smaller parts. " +
                 "What do you know for sure? Start from there and build your answer step by step.";
+    }
+
+    private String generateBasicHint(HintSubmissionContext ctx) {
+        return String.format(
+                "💡 Gợi ý đầu tiên: Hãy đọc kỹ câu hỏi và suy nghĩ về chủ đề '%s'. " +
+                "Bạn đã học những gì về chủ đề này?",
+                ctx.getTopic() != null ? ctx.getTopic() : "này");
+    }
+
+    private String generateIntermediateHint(HintSubmissionContext ctx) {
+        return String.format(
+                "💡 Gợi ý thứ hai: Hãy phân tích câu hỏi thành các phần nhỏ hơn. " +
+                "Với chủ đề '%s', hãy nghĩ về phương pháp hoặc công thức có thể áp dụng.",
+                ctx.getTopic() != null ? ctx.getTopic() : "này");
+    }
+
+    private String generateDetailedHint(HintSubmissionContext ctx) {
+        return String.format(
+                "💡 Gợi ý chi tiết: Hãy thử từng bước một. " +
+                "Bước 1: Xác định những gì đề bài cho. " +
+                "Bước 2: Xác định những gì cần tìm. " +
+                "Bước 3: Áp dụng kiến thức về '%s' để kết nối hai điều trên. " +
+                "Nếu vẫn gặp khó khăn, hãy xem lại tài liệu học tập!",
+                ctx.getTopic() != null ? ctx.getTopic() : "chủ đề này");
     }
 }

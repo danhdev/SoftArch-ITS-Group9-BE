@@ -30,4 +30,6 @@ public class HintRequestDTO {
     private String topic;
 
     private String difficulty;
+
+    private Integer hintLimit;
 }

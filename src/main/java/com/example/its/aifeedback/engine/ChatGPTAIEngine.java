@@ -1,6 +1,7 @@
 package com.example.its.aifeedback.engine;
 
 import com.example.its.aifeedback.domain.AIFeedback;
+import com.example.its.aifeedback.domain.HintSubmissionContext;
 import com.example.its.aifeedback.domain.LearningRecommendation;
 import com.example.its.aifeedback.domain.SubmissionContext;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -82,6 +83,22 @@ public class ChatGPTAIEngine implements AIEngine {
         } catch (Exception e) {
             logger.error("Error calling ChatGPT API: {}. Using fallback.", e.getMessage());
             return fallbackEngine.generateFeedback(ctx);
+        }
+    }
+
+    @Override
+    public String generateHint(HintSubmissionContext ctx) {
+        if (apiKey == null || apiKey.isEmpty() || apiKey.equals("your-openai-api-key-here")) {
+            logger.warn("OpenAI API key not configured. Using fallback rule-based engine.");
+            return fallbackEngine.generateHint(ctx);
+        }
+
+        try {
+            String prompt = buildHintPrompt(ctx);
+            return callChatGPT(prompt);
+        } catch (Exception e) {
+            logger.error("Error calling ChatGPT API: {}. Using fallback.", e.getMessage());
+            return fallbackEngine.generateHint(ctx);
         }
     }
 
@@ -286,6 +303,57 @@ public class ChatGPTAIEngine implements AIEngine {
     }
 
     // ========== Private Helper Methods ==========
+
+    private String buildHintPrompt(HintSubmissionContext ctx) {
+        int previousHintCount = ctx.getPreviousHints() != null ? ctx.getPreviousHints().size() : 0;
+        String hintLevel = "cơ bản";
+
+        if (previousHintCount == 0) {
+            hintLevel = "nhẹ nhàng, chỉ gợi ý hướng suy nghĩ";
+        } else if (previousHintCount == 1) {
+            hintLevel = "rõ ràng hơn, chỉ ra phương pháp giải";
+        } else if (previousHintCount >= 2) {
+            hintLevel = "chi tiết hơn, hướng dẫn từng bước";
+        }
+
+        StringBuilder previousHintsText = new StringBuilder();
+        if (ctx.getPreviousHints() != null && !ctx.getPreviousHints().isEmpty()) {
+            previousHintsText.append("\n\nCác gợi ý đã cung cấp trước đó cho học sinh:\n");
+            for (int i = 0; i < ctx.getPreviousHints().size(); i++) {
+                previousHintsText.append(String.format("%d. %s\n", i + 1, ctx.getPreviousHints().get(i)));
+            }
+            previousHintsText.append("\nHọc sinh vẫn chưa tìm ra câu trả lời, hãy đưa ra gợi ý mới dựa trên những gợi ý trước đó.");
+        }
+
+        return String.format("""
+                Bạn là một giáo viên AI thân thiện trong hệ thống Intelligent Tutoring System.
+                Học sinh đang gặp khó khăn với câu hỏi và cần gợi ý.
+
+                Thông tin liên quan đến câu hỏi:
+                - Môn học: %s
+                - Chủ đề: %s
+                - Độ khó: %s
+                - Đáp án: %s
+                - Câu hỏi: %s%s
+
+                Yêu cầu:
+                - Đưa ra gợi ý ở mức độ: %s
+                - KHÔNG tiết lộ đáp án trực tiếp
+                - Gợi ý cần giúp học sinh tự tìm ra câu trả lời
+                - Nếu đã có gợi ý trước, hãy đưa ra gợi ý mới không trùng lặp và chi tiết hơn
+                - Sử dụng tiếng Việt thân thiện với emoji phù hợp
+                - Trả về chỉ nội dung gợi ý (không cần JSON)
+
+                Gợi ý:
+                """,
+                ctx.getSubject() != null ? ctx.getSubject() : "Chưa xác định",
+                ctx.getTopic() != null ? ctx.getTopic() : "Chưa xác định",
+                ctx.getDifficulty() != null ? ctx.getDifficulty() : "Trung bình",
+                ctx.getCorrectAnswer() != null ? ctx.getCorrectAnswer() : "Chưa cung cấp",
+                ctx.getQuestionText(),
+                previousHintsText.toString(),
+                hintLevel);
+    }
 
     /**
      * Xây dựng prompt để yêu cầu ChatGPT sinh feedback.

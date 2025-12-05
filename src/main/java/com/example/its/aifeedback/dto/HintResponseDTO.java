@@ -18,13 +18,7 @@ public class HintResponseDTO {
 
     private String hint;
 
-    private String hintLevel;
-
-    private Boolean isFinalHint;
-
     private Integer hintCount;
 
-    private String suggestedAction;
-
-    private String timestamp;
+    private String createdAt;
 }

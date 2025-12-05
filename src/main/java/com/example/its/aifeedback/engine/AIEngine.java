@@ -1,6 +1,7 @@
 package com.example.its.aifeedback.engine;
 
 import com.example.its.aifeedback.domain.AIFeedback;
+import com.example.its.aifeedback.domain.HintSubmissionContext;
 import com.example.its.aifeedback.domain.LearningRecommendation;
 import com.example.its.aifeedback.domain.SubmissionContext;
 
@@ -56,6 +57,8 @@ public interface AIEngine {
      * @return list of learning recommendations
      */
     List<LearningRecommendation> suggestNextSteps(Long studentId);
+
+    String generateHint(HintSubmissionContext ctx);
 
     /**
      * Suggests next learning steps với dữ liệu phân tích chi tiết.
