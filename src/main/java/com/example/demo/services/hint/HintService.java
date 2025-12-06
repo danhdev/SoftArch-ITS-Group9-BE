@@ -1,0 +1,19 @@
+package com.example.demo.services.hint;
+
+import com.example.demo.dto.request.AIHintRequest;
+import com.example.demo.dto.AIResponse;
+
+/**
+ * Service interface for hint-related operations.
+ * Follows Interface Segregation Principle (ISP) - provides only hint-specific methods.
+ */
+public interface HintService {
+
+    /**
+     * Generate a hint for the given problem/question.
+     *
+     * @param request the AI hint request containing course, assessment, and question identifiers
+     * @return AI response with the hint
+     */
+    AIResponse hint(AIHintRequest request);
+}
