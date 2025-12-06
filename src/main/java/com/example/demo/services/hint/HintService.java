@@ -2,6 +2,9 @@ package com.example.demo.services.hint;
 
 import com.example.demo.dto.request.AIHintRequest;
 import com.example.demo.dto.AIResponse;
+import com.example.demo.dto.HintResponseDTO;
+
+import java.util.List;
 
 /**
  * Service interface for hint-related operations.
@@ -16,4 +19,13 @@ public interface HintService {
      * @return AI response with the hint
      */
     AIResponse hint(AIHintRequest request);
+
+    /**
+     * Get all hints for a specific student and question.
+     *
+     * @param studentId the student identifier
+     * @param questionId the question identifier
+     * @return list of hints ordered by creation time
+     */
+    List<HintResponseDTO> getHintHistory(Long studentId, Long questionId);
 }

@@ -1,9 +1,10 @@
 package com.example.demo.services.prompt.impl;
 
-import com.example.demo.dto.request.AIFeedbackRequest;
 import com.example.demo.services.prompt.BuildPrompt;
 import com.example.demo.services.prompt.PromptType;
 import com.example.demo.services.prompt.context.MaterialExplanationPromptContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -13,35 +14,79 @@ import org.springframework.stereotype.Component;
 @Component
 public class MaterialExplanationBuildPrompt implements BuildPrompt<MaterialExplanationPromptContext> {
 
+    private static final Logger log = LoggerFactory.getLogger(MaterialExplanationBuildPrompt.class);
+
     @Override
     public String buildPrompt(MaterialExplanationPromptContext context) {
-        AIFeedbackRequest request = context.getRequest();
+        // Build material content section
+        StringBuilder materialContentText = new StringBuilder();
+        if (context.getMaterialContent() != null && !context.getMaterialContent().isEmpty()) {
+            materialContentText.append("\n📚 MATERIAL CONTENT:\n");
 
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("Please provide a detailed explanation for the following topic:\n\n");
+            if (context.getFileName() != null && !context.getFileName().isEmpty()) {
+                materialContentText.append(String.format("File name: %s\n", context.getFileName()));
+            }
 
-        // Add context information if available
-        if (request != null) {
-            prompt.append("=== CONTEXT ===\n");
-            if (request.getCourseId() != null) {
-                prompt.append("Course ID: ").append(request.getCourseId()).append("\n");
+            if (context.getPages() != null && !context.getPages().isEmpty()) {
+                materialContentText.append(String.format("Pages: %s\n", context.getPages()));
             }
-            if (request.getAssessmentId() != null) {
-                prompt.append("Assessment ID: ").append(request.getAssessmentId()).append("\n");
-            }
-            prompt.append("\n");
+
+            materialContentText.append("\nContent:\n");
+            materialContentText.append(context.getMaterialContent());
+            materialContentText.append("\n");
         }
 
-        // Instructions for explanation
-        prompt.append("=== INSTRUCTIONS ===\n");
-        prompt.append("Please provide a clear, educational explanation that:\n");
-        prompt.append("1. Breaks down complex concepts into simpler parts\n");
-        prompt.append("2. Uses examples where appropriate\n");
-        prompt.append("3. Is suitable for a student's learning level\n");
-        prompt.append("4. Highlights key points and important concepts\n");
-        prompt.append("5. Provides actionable insights for better understanding\n");
+        // Build previous Q&A section
+        StringBuilder previousQAText = new StringBuilder();
+        if (context.getPreviousQuestions() != null && !context.getPreviousQuestions().isEmpty() &&
+            context.getPreviousExplanations() != null && !context.getPreviousExplanations().isEmpty()) {
 
-        return prompt.toString();
+            previousQAText.append("\n\n💬 PREVIOUS QUESTIONS AND EXPLANATIONS:\n");
+            int count = Math.min(context.getPreviousQuestions().size(), context.getPreviousExplanations().size());
+
+            for (int i = 0; i < count; i++) {
+                previousQAText.append(String.format("\n--- Question %d ---\n", i + 1));
+                previousQAText.append(String.format("❓ Question: %s\n", context.getPreviousQuestions().get(i)));
+                previousQAText.append(String.format("💡 Explanation: %s\n", context.getPreviousExplanations().get(i)));
+            }
+
+            previousQAText.append("\n⚠️ The student still doesn't fully understand this material and has a new question. Please explain from a different perspective or in more detail.");
+        }
+
+        // Build complete prompt
+        String prompt = String.format("""
+                You are a friendly AI tutor in an Intelligent Tutoring System.
+                The student is studying a material and has a question that needs explanation.
+
+                %s%s
+
+                ❓ STUDENT'S QUESTION:
+                %s
+
+                REQUIREMENTS:
+                - Base your explanation on the MATERIAL CONTENT above
+                - Explain in a clear way, appropriate for the student's level
+                - If there are previous questions, don't repeat old explanations but provide new perspectives
+                - You can provide illustrative examples to help the student understand better
+                - Encourage the student to think independently and ask follow-up questions
+                - Use a friendly tone with appropriate emojis
+                - Return ONLY the explanation content (no JSON format needed)
+                """,
+                materialContentText,
+                previousQAText,
+                context.getStudentQuestion() != null ? context.getStudentQuestion() : "No question provided");
+
+        // Log the generated prompt
+        log.info("========== MATERIAL EXPLANATION PROMPT GENERATED ==========");
+        log.info("Student Question: {}", context.getStudentQuestion());
+        log.info("Material File: {}", context.getFileName());
+        log.info("Previous Questions Count: {}",
+                context.getPreviousQuestions() != null ? context.getPreviousQuestions().size() : 0);
+        log.info("===========================================================");
+        log.info("FULL PROMPT:\n{}", prompt);
+        log.info("===========================================================");
+
+        return prompt;
     }
 
     @Override

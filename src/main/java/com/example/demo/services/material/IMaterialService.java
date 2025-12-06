@@ -1,7 +1,11 @@
 package com.example.demo.services.material;
 
+import com.example.demo.dto.AIExplainResponseDTO;
+import com.example.demo.dto.request.AIExplainRequest;
 import com.example.demo.dto.request.AIFeedbackRequest;
 import com.example.demo.dto.AIResponse;
+
+import java.util.List;
 
 /**
  * Service interface for material-related operations.
@@ -23,5 +27,14 @@ public interface IMaterialService {
      * @param request the AI request containing the topic to explain
      * @return AI response with explanation
      */
-    AIResponse explain(AIFeedbackRequest request);
+    AIResponse explain(AIExplainRequest request);
+
+    /**
+     * Get all explanations for a specific student and material.
+     *
+     * @param studentId the student identifier
+     * @param materialId the material identifier
+     * @return list of explanations ordered by creation time
+     */
+    List<AIExplainResponseDTO> getExplainHistory(Long studentId, Long materialId);
 }

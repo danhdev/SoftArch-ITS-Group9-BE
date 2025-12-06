@@ -1,9 +1,11 @@
 package com.example.demo.proxy;
 
-import com.example.demo.dto.TestResponseDTO;
+import com.example.demo.dto.*;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+
+import java.util.List;
 
 /**
  * OpenFeign client for fetching test/assessment data from external service.
@@ -42,5 +44,47 @@ public interface TestProxyClient {
     TestResponseDTO getTestByCourseAndAssessment(
             @PathVariable("courseId") String courseId,
             @PathVariable("assessmentId") String assessmentId
+    );
+
+    /**
+     * Fetch course details by course ID.
+     *
+     * @param courseId the course identifier
+     * @return ResponseObject containing list of CourseDTO
+     */
+    @GetMapping("/courses/{courseId}")
+    ResponseObject<List<CourseDTO>> getCourse(@PathVariable("courseId") String courseId);
+
+    /**
+     * Fetch chapters for a specific course.
+     *
+     * @param courseId the course identifier
+     * @return ResponseObject containing list of ChapterDTO
+     */
+    @GetMapping("/course/{courseId}/chapter")
+    ResponseObject<List<ChapterDTO>> getCourseChapters(@PathVariable("courseId") String courseId);
+
+    /**
+     * Fetch content/materials for a specific chapter.
+     *
+     * @param courseId  the course identifier
+     * @param chapterId the chapter identifier
+     * @return ResponseObject containing ChapterContentResponseDTO with list of materials
+     */
+    @GetMapping("/course/{courseId}/chapters/{chapterId}/materials")
+    ResponseObject<ChapterContentResponseDTO> getChapterContent(
+            @PathVariable("courseId") String courseId,
+            @PathVariable("chapterId") String chapterId
+    );
+
+    /**
+     * Fetch material content by material ID.
+     *
+     * @param materialId the material identifier
+     * @return ResponseObject containing MaterialContentResponseDTO
+     */
+    @GetMapping("/materials/{materialId}/content")
+    ResponseObject<MaterialContentResponseDTO> getMaterialContent(
+            @PathVariable("materialId") Long materialId
     );
 }
