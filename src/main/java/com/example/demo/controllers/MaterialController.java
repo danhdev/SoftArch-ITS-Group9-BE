@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.demo.dto.request.AIMaterialRequest;
 import com.example.demo.dto.request.AIFeedbackRequest;
 import com.example.demo.dto.AIResponse;
 import com.example.demo.dto.ResponseObject;
@@ -32,16 +33,17 @@ public class MaterialController {
     private final IMaterialService materialService;
 
     /**
-     * Recommend learning materials based on student context.
+     * Recommend learning materials based on student context and course materials.
      *
-     * @param request the AI request containing student context
+     * @param request the AI request containing student context and course ID
      * @return response with material recommendations
      */
     @PostMapping("/recommend")
     @Operation(summary = "Recommend learning materials",
-               description = "Generates personalized learning material recommendations based on student context and progress")
-    public ResponseEntity<ResponseObject<AIResponse>> recommend(@Valid @RequestBody AIFeedbackRequest request) {
-        log.info("Received material recommendation request for student: {}", request.getStudentId());
+               description = "Generates personalized learning material recommendations based on student context, course materials, and student preferences")
+    public ResponseEntity<ResponseObject<AIResponse>> recommend(@Valid @RequestBody AIMaterialRequest request) {
+        log.info("Received material recommendation request for student: {}, course: {}", 
+                request.getStudentId(), request.getCourseId());
         
         AIResponse response = materialService.recommend(request);
         

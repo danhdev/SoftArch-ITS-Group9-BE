@@ -1,10 +1,14 @@
 package com.example.demo.services.prompt.context;
 
-import com.example.demo.dto.request.AIFeedbackRequest;
+import com.example.demo.dto.material.ChapterDTO;
+import com.example.demo.dto.material.MaterialDTO;
+import com.example.demo.dto.request.AIMaterialRequest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 /**
  * Context data for building material recommendation prompts.
@@ -14,5 +18,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class MaterialRecommendationPromptContext {
-    private AIFeedbackRequest request;
+    private AIMaterialRequest request;
+    private List<ChapterDTO> chapters;
+    private List<MaterialDTO> materials;
 }
