@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+// act as a facade for material-related operations
 public class MaterialServiceImpl implements IMaterialService {
 
     private final MaterialRecommendationTask recommendationTask;
@@ -24,6 +25,9 @@ public class MaterialServiceImpl implements IMaterialService {
     @Override
     public AIResponse recommend(AIFeedbackRequest request) {
         log.info("Processing material recommendation request for student: {}", request.getStudentId());
+
+
+
         return recommendationTask.execute(request);
     }
 
