@@ -1,4 +1,4 @@
-package com.example.course.service.exception;
+package com.example.course.service.exception.handler;
 
 import com.example.course.service.dto.response.ResponseObject;
 import org.springframework.http.HttpStatus;
