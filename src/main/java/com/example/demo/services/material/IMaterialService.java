@@ -1,5 +1,6 @@
 package com.example.demo.services.material;
 
+import com.example.demo.dto.request.AIMaterialRequest;
 import com.example.demo.dto.AIExplainResponseDTO;
 import com.example.demo.dto.request.AIExplainRequest;
 import com.example.demo.dto.request.AIFeedbackRequest;
@@ -15,11 +16,12 @@ public interface IMaterialService {
 
     /**
      * Recommend learning materials based on the request.
+     * Fetches course materials from external API and generates AI recommendations.
      *
-     * @param request the AI request containing student context
+     * @param request the AI request containing student context and course ID
      * @return AI response with recommendations
      */
-    AIResponse recommend(AIFeedbackRequest request);
+    AIResponse recommend(AIMaterialRequest request);
 
     /**
      * Explain a topic or concept.
