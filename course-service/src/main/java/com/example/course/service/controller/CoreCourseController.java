@@ -1,5 +1,7 @@
 package com.example.course.service.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import com.example.course.service.dto.MaterialDTO;
 import com.example.course.service.dto.response.ResponseObject;
 import com.example.course.service.service.IMaterialManagementService;
@@ -13,11 +15,81 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+import com.example.course.service.dto.ChapterDTO;
+import com.example.course.service.service.IChapterManagementService;
+
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+
 @RestController
+@RequestMapping("course/{courseId}")
 @RequiredArgsConstructor
 @Tag(name = "Core Course Controller", description = "Quản lý nội dung khóa học, chapter và material")
 public class CoreCourseController {
+    @Autowired 
+    @Qualifier("chapterManagementServiceImpl") 
+    IChapterManagementService chapterManagementService;
+    
+    
+    @Operation(summary = "Tạo chapter mới cho course")
+    @PostMapping("chapter")
+    public ResponseEntity<ResponseObject> createChapter(@PathVariable String courseId, @RequestBody ChapterDTO chapterDTO) {
+        //TODO: process POST request
+        chapterManagementService.createChapter(courseId, chapterDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ResponseObject.builder()
+                        .status(HttpStatus.CREATED.value())
+                        .message("Query materials successfully")
+                        .data(chapterDTO)
+                        .build()
+        );
+    }
 
+    @Operation(summary = "Cập nhật chapter đã có trong course")
+    @PutMapping("chapter")
+    public ResponseEntity<ResponseObject> updateChapter(@PathVariable String courseId, @RequestBody ChapterDTO chapterDTO) {
+        //TODO: process POST request
+        chapterManagementService.updateChapter(courseId, chapterDTO);
+        // return new ResponseObject("updated chapter successfully", 201, chapterDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ResponseObject.builder()
+                        .status(HttpStatus.CREATED.value())
+                        .message("Query materials successfully")
+                        .data(chapterDTO)
+                        .build()
+        );
+    }
+
+    @Operation(summary = "Lấy danh sách các chapter hiện có")
+    @GetMapping("chapters")
+    public ResponseEntity<ResponseObject> getChapterList(@PathVariable String courseId) {
+        // return new ResponseObject("object responded", 200, chapterManagementService.listChapters(null));
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ResponseObject.builder()
+                        .status(HttpStatus.OK.value())
+                        .message("Query materials successfully")
+                        .data(chapterManagementService.listChapters(courseId))
+                        .build()
+        );
+    }
+    
+    @Operation(summary = "Xóa chapter với id")
+    @DeleteMapping("chapter/{id}") 
+    public ResponseEntity<ResponseObject> deleteChapter(@PathVariable String id) {
+        // return new ResponseObject("chapter deleted", 204, chapterManagementService.deleteChapter(id));
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ResponseObject.builder()
+                        .status(HttpStatus.OK.value())
+                        .message("Query materials successfully")
+                        .data(chapterManagementService.deleteChapter(id))
+                        .build()
+        );
+    }
     private final IMaterialManagementService materialService;
 
     @Operation(summary = "Lấy danh sách Material của một Chapter")
