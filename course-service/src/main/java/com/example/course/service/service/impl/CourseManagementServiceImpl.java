@@ -1,7 +1,7 @@
 package com.example.course.service.service.impl;
 
 import com.example.course.service.dto.CourseDTO;
-import com.example.course.service.mapper.CourseMapper;
+import com.example.course.service.mapper.CourseManagementMapper;
 import com.example.course.service.model.course.Course;
 import com.example.course.service.repository.ICourseRepository;
 import com.example.course.service.service.ICourseManagementService;
@@ -17,11 +17,11 @@ import java.util.List;
 public class CourseManagementServiceImpl implements ICourseManagementService {
 
     private final ICourseRepository courseRepository;
-    private final CourseMapper courseMapper;
+    private final CourseManagementMapper courseMapper;
 
     @Override
     public void createCourse(CourseDTO courseData) {
-        Course course = courseMapper.toEntity(courseData);
+        Course course = courseMapper.mapToEntity(courseData);
         courseRepository.save(course);
     }
 
@@ -41,13 +41,13 @@ public class CourseManagementServiceImpl implements ICourseManagementService {
     @Override
     public List<CourseDTO> getCourseDetail(String courseId) {
         return courseRepository.findById(courseId)
-                .map(course -> List.of(courseMapper.toDTO(course)))
+                .map(course -> List.of(courseMapper.mapToDTO(course)))
                 .orElse(List.of());
     }
 
     public List<CourseDTO> searchCourses(String keyword) {
         return courseRepository.searchByName(keyword).stream()
-                .map(courseMapper::toDTO)
+                .map(courseMapper::mapToDTO)
                 .toList();
     }
 }

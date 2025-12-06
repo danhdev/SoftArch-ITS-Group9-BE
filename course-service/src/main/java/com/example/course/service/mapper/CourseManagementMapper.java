@@ -5,12 +5,12 @@ import com.example.course.service.model.course.Course;
 import org.springframework.stereotype.Component;
 
 @Component
-public class CourseMapper {
+public class CourseManagementMapper {
 
     /**
      * Convert Entity (Course) → DTO (CourseDTO)
      */
-    public CourseDTO toDTO(Course course) {
+    public CourseDTO mapToDTO(Course course) {
         if (course == null) {
             return null;
         }
@@ -27,7 +27,7 @@ public class CourseMapper {
     /**
      * Convert DTO (CourseDTO) → Entity (Course)
      */
-    public Course toEntity(CourseDTO dto) {
+    public Course mapToEntity(CourseDTO dto) {
         if (dto == null) {
             return null;
         }
