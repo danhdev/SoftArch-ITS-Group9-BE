@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 import com.example.course.service.dto.ChapterDTO;
-import com.example.course.service.dto.response.ResponseObject;
 import com.example.course.service.service.IChapterManagementService;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,10 +23,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 
 
 @RestController
+@RequestMapping("course/{courseId}")
 @RequiredArgsConstructor
 @Tag(name = "Core Course Controller", description = "Quản lý nội dung khóa học, chapter và material")
 public class CoreCourseController {
@@ -36,29 +35,59 @@ public class CoreCourseController {
     IChapterManagementService chapterManagementService;
     
     
-    
-    @PostMapping("chapter/{courseId}")
-    public ResponseObject createChapter(@PathVariable String courseId, @RequestBody ChapterDTO chapterDTO) {
+    @Operation(summary = "Tạo chapter mới cho course")
+    @PostMapping("chapter")
+    public ResponseEntity<ResponseObject> createChapter(@PathVariable String courseId, @RequestBody ChapterDTO chapterDTO) {
         //TODO: process POST request
         chapterManagementService.createChapter(courseId, chapterDTO);
-        return new ResponseObject("created new chapter successfully", 201, chapterDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ResponseObject.builder()
+                        .status(HttpStatus.CREATED.value())
+                        .message("Query materials successfully")
+                        .data(chapterDTO)
+                        .build()
+        );
     }
 
-    @PutMapping("chapter/{courseId}")
-    public ResponseObject updateChapter(@PathVariable String courseId, @RequestBody ChapterDTO chapterDTO) {
+    @Operation(summary = "Cập nhật chapter đã có trong course")
+    @PutMapping("chapter")
+    public ResponseEntity<ResponseObject> updateChapter(@PathVariable String courseId, @RequestBody ChapterDTO chapterDTO) {
         //TODO: process POST request
         chapterManagementService.updateChapter(courseId, chapterDTO);
-        return new ResponseObject("updated chapter successfully", 201, chapterDTO);
+        // return new ResponseObject("updated chapter successfully", 201, chapterDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ResponseObject.builder()
+                        .status(HttpStatus.CREATED.value())
+                        .message("Query materials successfully")
+                        .data(chapterDTO)
+                        .build()
+        );
     }
 
-    @GetMapping("chapters/{courseId}")
-    public ResponseObject getChapterList() {
-        return new ResponseObject("object responded", 200, chapterManagementService.listChapters(null));
+    @Operation(summary = "Lấy danh sách các chapter hiện có")
+    @GetMapping("chapters")
+    public ResponseEntity<ResponseObject> getChapterList(@PathVariable String courseId) {
+        // return new ResponseObject("object responded", 200, chapterManagementService.listChapters(null));
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ResponseObject.builder()
+                        .status(HttpStatus.OK.value())
+                        .message("Query materials successfully")
+                        .data(chapterManagementService.listChapters(courseId))
+                        .build()
+        );
     }
     
+    @Operation(summary = "Xóa chapter với id")
     @DeleteMapping("chapter/{id}") 
-    public ResponseObject deleteChapter(@PathVariable String id) {
-        return new ResponseObject("chapter deleted", 204, chapterManagementService.deleteChapter(id));
+    public ResponseEntity<ResponseObject> deleteChapter(@PathVariable String id) {
+        // return new ResponseObject("chapter deleted", 204, chapterManagementService.deleteChapter(id));
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ResponseObject.builder()
+                        .status(HttpStatus.OK.value())
+                        .message("Query materials successfully")
+                        .data(chapterManagementService.deleteChapter(id))
+                        .build()
+        );
     }
     private final IMaterialManagementService materialService;
 
