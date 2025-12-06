@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * Context data for building material explanation prompts.
  */
@@ -14,5 +16,15 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class MaterialExplanationPromptContext {
-    private AIFeedbackRequest request;
+    private String studentQuestion;
+
+    private String materialContent;
+
+    private String fileName;
+
+    private String pages;
+
+    private List<String> previousQuestions;
+
+    private List<String> previousExplanations;
 }

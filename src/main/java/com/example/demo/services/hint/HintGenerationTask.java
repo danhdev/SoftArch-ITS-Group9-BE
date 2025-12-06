@@ -1,17 +1,16 @@
 package com.example.demo.services.hint;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
-import com.example.demo.dto.QuestionDTO;
-import com.example.demo.dto.TestResponseDTO;
-import com.example.demo.proxy.TestProxyClient;
+import com.example.demo.dto.*;
 import com.example.demo.services.prompt.impl.HintGenerationBuildPrompt;
 import com.example.demo.services.prompt.context.HintPromptContext;
 import com.example.demo.services.task.AITask;
 import org.springframework.stereotype.Component;
 
 import com.example.demo.dto.request.AIHintRequest;
-import com.example.demo.dto.AIResponse;
 import com.example.demo.llm.LLMClient;
 
 import lombok.RequiredArgsConstructor;
@@ -30,39 +29,60 @@ public class HintGenerationTask implements AITask<AIHintRequest> {
     public static final String TASK_TYPE = "HINT_GENERATION";
 
     private final LLMClient llmClient;
-    private final TestProxyClient testProxyClient;
     private final HintGenerationBuildPrompt buildPrompt;
 
     @Override
     public AIResponse execute(AIHintRequest request) {
-        log.info("Executing hint generation task for course: {}, assessment: {}, question: {}",
-                request.getCourseId(), request.getAssessmentId(), request.getQuestionId());
+        return execute(request, new ArrayList<>(), null, null, "Not specified", new ArrayList<>());
+    }
 
-        // Fetch test context from external API
-        TestResponseDTO testContext = fetchTestContext(request.getCourseId(), request.getAssessmentId());
-        
-        // Find the specific question
-        QuestionDTO targetQuestion = findQuestion(testContext, request.getQuestionId());
+    /**
+     * Execute hint generation with all required context.
+     * @param request the hint request
+     * @param previousHints list of previous hints for context
+     * @param testContext the test context from external API
+     * @param targetQuestion the specific question to generate hint for
+     * @param subject the course/subject name
+     * @param materials list of course materials
+     * @return AI response with generated hint
+     */
+    public AIResponse execute(AIHintRequest request,
+                             List<String> previousHints,
+                             TestResponseDTO testContext,
+                             QuestionDTO targetQuestion,
+                             String subject,
+                             List<MaterialDTO> materials) {
+        log.info("Executing hint generation task for student: {}, course: {}, assessment: {}, question: {}",
+                request.getStudentId(), request.getCourseId(), request.getAssessmentId(), request.getQuestionId());
 
+        // Build context with all fields
         HintPromptContext context = HintPromptContext.builder()
                 .request(request)
                 .testContext(testContext)
                 .targetQuestion(targetQuestion)
+                .subject(subject)
+                .previousHints(previousHints)
+                .materials(materials)
                 .build();
 
         String prompt = buildPrompt.buildPrompt(context);
         log.debug("Generated prompt type: {}", buildPrompt.getPromptType());
-        System.out.println("Generated Prompt:\n" + prompt);
+
+        // Generate hint using LLM
         String result = llmClient.chat(prompt);
+
 
         return AIResponse.builder()
                 .result(result)
                 .metadata(Map.of(
                         "taskType", TASK_TYPE,
                         "promptType", buildPrompt.getPromptType().getValue(),
+                        "studentId", request.getStudentId() != null ? request.getStudentId().toString() : "unknown",
                         "courseId", request.getCourseId() != null ? request.getCourseId() : "unknown",
                         "assessmentId", request.getAssessmentId() != null ? request.getAssessmentId() : "unknown",
-                        "questionId", request.getQuestionId() != null ? request.getQuestionId() : "unknown"
+                        "questionId", request.getQuestionId() != null ? request.getQuestionId().toString() : "unknown",
+                        "previousHintsCount", previousHints.size(),
+                        "materialsCount", materials.size()
                 ))
                 .build();
     }
@@ -70,25 +90,5 @@ public class HintGenerationTask implements AITask<AIHintRequest> {
     @Override
     public String getTaskType() {
         return TASK_TYPE;
-    }
-
-    private TestResponseDTO fetchTestContext(String courseId, String assessmentId) {
-        try {
-            return testProxyClient.getTestByCourseAndAssessment(courseId, assessmentId);
-        } catch (Exception e) {
-            log.warn("Failed to fetch test context for course: {}, assessment: {}. Error: {}",
-                    courseId, assessmentId, e.getMessage());
-            return null;
-        }
-    }
-
-    private QuestionDTO findQuestion(TestResponseDTO testContext, Long questionId) {
-        if (testContext == null || testContext.getQuestionList() == null) {
-            return null;
-        }
-        return testContext.getQuestionList().stream()
-                .filter(q -> q.getQuestionId() != null && q.getQuestionId().equals(questionId))
-                .findFirst()
-                .orElse(null);
     }
 }

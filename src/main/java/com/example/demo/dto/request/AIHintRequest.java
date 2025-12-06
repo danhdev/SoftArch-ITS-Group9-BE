@@ -21,4 +21,7 @@ public class AIHintRequest {
 
     @NotNull(message = "Question ID is required")
     private Long questionId;
+
+    @NotNull(message = "Student ID is required")
+    private Long studentId;
 }
