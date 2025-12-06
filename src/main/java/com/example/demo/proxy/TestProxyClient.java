@@ -63,28 +63,4 @@ public interface TestProxyClient {
      */
     @GetMapping("/course/{courseId}/chapter")
     ResponseObject<List<ChapterDTO>> getCourseChapters(@PathVariable("courseId") String courseId);
-
-    /**
-     * Fetch content/materials for a specific chapter.
-     *
-     * @param courseId  the course identifier
-     * @param chapterId the chapter identifier
-     * @return ResponseObject containing ChapterContentResponseDTO with list of materials
-     */
-    @GetMapping("/course/{courseId}/chapters/{chapterId}/materials")
-    ResponseObject<ChapterContentResponseDTO> getChapterContent(
-            @PathVariable("courseId") String courseId,
-            @PathVariable("chapterId") String chapterId
-    );
-
-    /**
-     * Fetch material content by material ID.
-     *
-     * @param materialId the material identifier
-     * @return ResponseObject containing MaterialContentResponseDTO
-     */
-    @GetMapping("/materials/{materialId}/content")
-    ResponseObject<MaterialContentResponseDTO> getMaterialContent(
-            @PathVariable("materialId") Long materialId
-    );
 }

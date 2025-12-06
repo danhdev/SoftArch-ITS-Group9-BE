@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 import com.example.demo.dto.MaterialContentResponseDTO;
 import com.example.demo.dto.request.AIExplainRequest;
 import com.example.demo.models.AIExplanation;
-import com.example.demo.proxy.TestProxyClient;
+import com.example.demo.proxy.MaterialProxyClient;
 import com.example.demo.repository.AIExplanationRepository;
 import com.example.demo.services.prompt.impl.MaterialExplanationBuildPrompt;
 import com.example.demo.services.prompt.context.MaterialExplanationPromptContext;
@@ -37,7 +37,7 @@ public class MaterialExplanationTask implements AITask<AIExplainRequest> {
     private final LLMClient llmClient;
     private final MaterialExplanationBuildPrompt buildPrompt;
     private final AIExplanationRepository explanationRepository;
-    private final TestProxyClient testProxyClient;
+    private final MaterialProxyClient materialProxyClient;
 
     @Override
     public AIResponse execute(AIExplainRequest request) {
@@ -138,7 +138,7 @@ public class MaterialExplanationTask implements AITask<AIExplainRequest> {
      */
     private MaterialContentResponseDTO fetchMaterialContent(Long materialId) {
         try {
-            var response = testProxyClient.getMaterialContent(materialId);
+            var response = materialProxyClient.getMaterialContent(materialId);
 
             if (response != null && response.getData() != null) {
                 MaterialContentResponseDTO content = response.getData();

@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import com.example.demo.dto.*;
 import com.example.demo.models.AIHint;
+import com.example.demo.proxy.MaterialProxyClient;
 import com.example.demo.proxy.TestProxyClient;
 import com.example.demo.repository.AIHintRepository;
 import com.example.demo.services.prompt.impl.HintGenerationBuildPrompt;
@@ -35,6 +36,7 @@ public class HintGenerationTask implements AITask<AIHintRequest> {
 
     private final LLMClient llmClient;
     private final TestProxyClient testProxyClient;
+    private final MaterialProxyClient materialProxyClient;
     private final HintGenerationBuildPrompt buildPrompt;
     private final AIHintRepository hintRepository;
 
@@ -180,7 +182,7 @@ public class HintGenerationTask implements AITask<AIHintRequest> {
                     try {
                         String chapterId = String.valueOf(chapter.getOrderIndex()); // Using orderIndex as chapterId
                         ResponseObject<ChapterContentResponseDTO> contentResponse =
-                                testProxyClient.getChapterContent(courseId, chapterId);
+                                materialProxyClient.getChapterContent(courseId, chapterId);
 
                         if (contentResponse != null && contentResponse.getData() != null
                                 && contentResponse.getData().getData() != null) {
