@@ -42,6 +42,7 @@ package "Data Provider Layer" #LightYellow {
         [HintDataProvider]
         [ExplanationDataProvider]
         [RecommendationDataProvider]
+        [FeedbackDataProvider]
     }
     
     package "Data Provider Implementations" {
@@ -50,6 +51,7 @@ package "Data Provider Layer" #LightYellow {
         [HintDataProviderImpl]
         [ExplanationDataProviderImpl]
         [RecommendationDataProviderImpl]
+        [FeedbackDataProviderImpl]
     }
 }
 
@@ -115,7 +117,8 @@ package "Domain Model" #MistyRose {
 
 [OpenAIClientImpl] ..|> [LLMClient]
 
-[TestFeedbackServiceImpl] --> [TestProxyClient]
+[TestFeedbackServiceImpl] --> [TestDataProvider]
+[TestFeedbackServiceImpl] --> [FeedbackDataProvider]
 [HintServiceImpl] --> [CourseDataProvider]
 [HintServiceImpl] --> [TestDataProvider]
 [HintServiceImpl] --> [HintDataProvider]
@@ -126,6 +129,7 @@ package "Domain Model" #MistyRose {
 ' DataProvider implementations
 [CourseDataProviderImpl] ..|> [CourseDataProvider]
 [TestDataProviderImpl] ..|> [TestDataProvider]
+[FeedbackDataProviderImpl] ..|> [FeedbackDataProvider]
 [HintDataProviderImpl] ..|> [HintDataProvider]
 [ExplanationDataProviderImpl] ..|> [ExplanationDataProvider]
 [RecommendationDataProviderImpl] ..|> [RecommendationDataProvider]
@@ -1177,6 +1181,12 @@ package "services.dataprovider" #LightYellow {
         +saveRecommendation(request: AIMaterialRequest, response: AIResponse): MaterialRecommendationRecord
         +getRecommendationHistory(studentId: Long, courseId: String): List<MaterialRecommendationRecord>
     }
+    
+    interface FeedbackDataProvider <<ISP>> {
+        +saveFeedback(studentId: String, courseId: String, assessmentId: String, feedbackText: String): FeedbackRecord
+        +getFeedbackHistory(studentId: String): List<FeedbackRecord>
+        +getFeedbackByAssessment(studentId: String, assessmentId: String): Optional<FeedbackRecord>
+    }
 }
 
 package "services.dataprovider.impl" #LightGreen {
@@ -1210,6 +1220,12 @@ package "services.dataprovider.impl" #LightGreen {
         --
         ..implements RecommendationDataProvider methods..
     }
+    
+    class FeedbackDataProviderImpl <<@Component>> {
+        -feedbackHistoryService: ITestFeedbackHistoryService
+        --
+        ..implements FeedbackDataProvider methods..
+    }
 }
 
 ' Implementations
@@ -1218,6 +1234,7 @@ TestDataProviderImpl ..|> TestDataProvider : <<DIP>>
 HintDataProviderImpl ..|> HintDataProvider : <<DIP>>
 ExplanationDataProviderImpl ..|> ExplanationDataProvider : <<DIP>>
 RecommendationDataProviderImpl ..|> RecommendationDataProvider : <<DIP>>
+FeedbackDataProviderImpl ..|> FeedbackDataProvider : <<DIP>>
 
 package "proxy" <<External>> {
     [TestProxyClient]
@@ -1230,6 +1247,10 @@ package "repository" <<External>> {
     [MaterialRecommendationRepository]
 }
 
+package "services.feedback" <<External>> {
+    [ITestFeedbackHistoryService]
+}
+
 ' Dependencies
 CourseDataProviderImpl --> [TestProxyClient]
 CourseDataProviderImpl --> [MaterialProxyClient]
@@ -1237,6 +1258,7 @@ TestDataProviderImpl --> [TestProxyClient]
 HintDataProviderImpl --> [AIHintRepository]
 ExplanationDataProviderImpl --> [AIExplanationRepository]
 RecommendationDataProviderImpl --> [MaterialRecommendationRepository]
+FeedbackDataProviderImpl --> [ITestFeedbackHistoryService]
 
 note right of CourseDataProvider
   **SOLID Principles Applied:**
@@ -1288,6 +1310,24 @@ package "services.hint" #LightBlue {
     }
 }
 
+package "services.feedback" #LightPink {
+    interface ITestFeedbackService {
+        +feedback(request: AIFeedbackRequest): AIResponse
+        +getHistory(studentId: String): List<FeedbackRecord>
+        +getByAssessment(studentId: String, assessmentId: String): Optional<FeedbackRecord>
+    }
+    
+    class TestFeedbackServiceImpl <<@Service, Refactored>> {
+        -testFeedbackGenerationTask: TestFeedbackGenerationTask
+        -testDataProvider: TestDataProvider
+        -feedbackDataProvider: FeedbackDataProvider
+        --
+        +feedback(request: AIFeedbackRequest): AIResponse
+        +getHistory(studentId: String): List<FeedbackRecord>
+        +getByAssessment(studentId: String, assessmentId: String): Optional<FeedbackRecord>
+    }
+}
+
 package "services.material" #LightCyan {
     interface IMaterialService {
         +recommend(request: AIMaterialRequest): AIResponse
@@ -1314,9 +1354,11 @@ package "services.dataprovider" #LightYellow {
     interface HintDataProvider
     interface ExplanationDataProvider
     interface RecommendationDataProvider
+    interface FeedbackDataProvider
 }
 
 package "services.task" #Wheat {
+    [TestFeedbackGenerationTask]
     [HintGenerationTask]
     [MaterialRecommendationTask]
     [MaterialExplanationTask]
@@ -1325,6 +1367,11 @@ package "services.task" #Wheat {
 ' Relationships
 HintServiceImpl ..|> HintService
 MaterialServiceImpl ..|> IMaterialService
+TestFeedbackServiceImpl ..|> ITestFeedbackService
+
+TestFeedbackServiceImpl --> TestFeedbackGenerationTask : uses
+TestFeedbackServiceImpl --> TestDataProvider : <<DIP>>
+TestFeedbackServiceImpl --> FeedbackDataProvider : <<DIP>>
 
 HintServiceImpl --> HintGenerationTask : uses
 HintServiceImpl --> CourseDataProvider : <<DIP>>
@@ -1336,6 +1383,16 @@ MaterialServiceImpl --> MaterialExplanationTask : uses
 MaterialServiceImpl --> CourseDataProvider : <<DIP>>
 MaterialServiceImpl --> ExplanationDataProvider : <<DIP>>
 MaterialServiceImpl --> RecommendationDataProvider : <<DIP>>
+
+note top of TestFeedbackServiceImpl
+  **Before Refactoring:**
+  - Direct dependencies on proxy clients & history service
+  - Mixed concerns (data fetching + orchestration)
+  
+  **After Refactoring:**
+  - Depends on DataProvider abstractions
+  - Follows SRP, DIP, ISP
+end note
 
 note top of HintServiceImpl
   **Before Refactoring:**

@@ -4,7 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 import com.example.demo.dto.TestResponseDTO;
-import com.example.demo.proxy.TestProxyClient;
+import com.example.demo.services.dataprovider.FeedbackDataProvider;
+import com.example.demo.services.dataprovider.TestDataProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,8 +18,9 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Implementation of FeedbackService.
- * Follows Single Responsibility Principle - handles only feedback generation operations.
- * Uses composition to delegate to specialized services (FeedbackHistoryService, StudentProfileService).
+ * Follows Single Responsibility Principle - orchestrates feedback generation operations.
+ * Uses composition to delegate to specialized services.
+ * Delegates data fetching to DataProviders (SRP compliance).
  */
 @Service
 @RequiredArgsConstructor
@@ -26,8 +28,10 @@ import lombok.extern.slf4j.Slf4j;
 public class TestFeedbackServiceImpl implements ITestFeedbackService {
 
     private final TestFeedbackGenerationTask testFeedbackGenerationTask;
-    private final ITestFeedbackHistoryService feedbackHistoryService;
-    private final TestProxyClient testProxyClient;
+    
+    // DataProviders for SOLID compliance - separate data access concerns
+    private final TestDataProvider testDataProvider;
+    private final FeedbackDataProvider feedbackDataProvider;
 
     @Override
     @Transactional
@@ -35,26 +39,27 @@ public class TestFeedbackServiceImpl implements ITestFeedbackService {
         log.info("Processing feedback generation request for student: {}, assessment: {}",
                 request.getStudentId(), request.getAssessmentId());
 
-        // Fetch test context from external service
-        TestResponseDTO testContext = testProxyClient.getTestByStudentAndCourse(
+        // Delegate test context fetching to TestDataProvider (SRP compliance)
+        TestResponseDTO testContext = testDataProvider.getTestContextForStudent(
                 request.getCourseId(),
                 request.getAssessmentId(),
                 request.getStudentId()
         );
-        log.info("Fetched test context: {} - {}", testContext.getTitle(), testContext.getDescription());
+        
+        if (testContext != null) {
+            log.info("Fetched test context: {} - {}", testContext.getTitle(), testContext.getDescription());
+        }
 
         // Generate feedback using AI task with test context
         AIResponse response = testFeedbackGenerationTask.execute(request, testContext);
 
-        // Save feedback record
-        FeedbackRecord record = FeedbackRecord.builder()
-                .studentId(request.getStudentId())
-                .courseId(request.getCourseId())
-                .assessmentId(request.getAssessmentId())
-                .feedbackText(response.getResult())
-                .build();
-
-        feedbackHistoryService.save(record);
+        // Delegate saving to FeedbackDataProvider (SRP compliance)
+        feedbackDataProvider.saveFeedback(
+                request.getStudentId(),
+                request.getCourseId(),
+                request.getAssessmentId(),
+                response.getResult()
+        );
 
         return response;
     }
@@ -62,12 +67,14 @@ public class TestFeedbackServiceImpl implements ITestFeedbackService {
     @Override
     public List<FeedbackRecord> getHistory(String studentId) {
         log.info("Retrieving feedback history for student: {}", studentId);
-        return feedbackHistoryService.getHistory(studentId);
+        // Delegate to FeedbackDataProvider (SRP compliance)
+        return feedbackDataProvider.getFeedbackHistory(studentId);
     }
 
     @Override
     public Optional<FeedbackRecord> getByAssessment(String studentId, String assessmentId) {
         log.info("Retrieving feedback for student: {}, assessment: {}", studentId, assessmentId);
-        return feedbackHistoryService.getByAssessment(studentId, assessmentId);
+        // Delegate to FeedbackDataProvider (SRP compliance)
+        return feedbackDataProvider.getFeedbackByAssessment(studentId, assessmentId);
     }
 }
