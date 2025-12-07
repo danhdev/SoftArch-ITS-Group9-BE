@@ -2,18 +2,13 @@ package com.example.demo.services.material;
 
 import java.util.List;
 
-import com.example.demo.dto.MaterialContentResponseDTO;
 import com.example.demo.dto.request.AIExplainRequest;
-import com.example.demo.models.AIExplanation;
-import org.springframework.stereotype.Service;
-
-import com.example.demo.dto.material.ChapterDTO;
-import com.example.demo.dto.material.MaterialDTO;
 import com.example.demo.dto.request.AIMaterialRequest;
 import com.example.demo.dto.AIResponse;
-import com.example.demo.services.dataprovider.CourseDataProvider;
+import com.example.demo.models.AIExplanation;
 import com.example.demo.services.dataprovider.ExplanationDataProvider;
-import com.example.demo.services.dataprovider.RecommendationDataProvider;
+import com.example.demo.services.task.AITask;
+import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,40 +16,29 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Implementation of MaterialService.
  * Follows Single Responsibility Principle - orchestrates material-related operations.
+ * Follows Dependency Inversion Principle - depends on AITask abstraction, not concrete classes.
  * Uses Strategy Pattern via AI Tasks for different operations.
- * Delegates data fetching to DataProviders (SRP compliance).
+ * Delegates all business logic to AI Tasks.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-// act as a facade for material-related operations
 public class MaterialServiceImpl implements IMaterialService {
 
-    private final MaterialRecommendationTask recommendationTask;
-    private final MaterialExplanationTask explanationTask;
-    
-    // DataProviders for SOLID compliance - separate data access concerns
-    private final CourseDataProvider courseDataProvider;
+    private final AITask<AIMaterialRequest> recommendationTask;
+    private final AITask<AIExplainRequest> explanationTask;
     private final ExplanationDataProvider explanationDataProvider;
-    private final RecommendationDataProvider recommendationDataProvider;
 
     @Override
     public AIResponse recommend(AIMaterialRequest request) {
         log.info("Processing material recommendation request for student: {}, course: {}", 
                 request.getStudentId(), request.getCourseId());
 
-        // Delegate data fetching to CourseDataProvider (SRP compliance)
-        List<ChapterDTO> chapters = courseDataProvider.getMaterialChapters(request.getCourseId());
-        log.info("Fetched {} chapters for course: {}", chapters.size(), request.getCourseId());
+        // Delegate to AI Task which handles all data gathering and recommendation generation
+        AIResponse response = recommendationTask.execute(request);
 
-        List<MaterialDTO> allMaterials = courseDataProvider.getMaterialsForChapters(chapters);
-        log.info("Fetched {} total materials from {} chapters", allMaterials.size(), chapters.size());
-
-        // Execute the recommendation task with materials context
-        AIResponse response = recommendationTask.execute(request, chapters, allMaterials);
-
-        // Delegate saving to RecommendationDataProvider (SRP compliance)
-        recommendationDataProvider.saveRecommendation(request, response);
+        log.info("Material recommendation completed for student: {}, course: {}",
+                request.getStudentId(), request.getCourseId());
 
         return response;
     }
@@ -64,35 +48,11 @@ public class MaterialServiceImpl implements IMaterialService {
         log.info("Processing material explanation request for student: {}, material: {}",
                 request.getStudentId(), request.getMaterialId());
 
-        // Delegate data fetching to ExplanationDataProvider (SRP compliance)
-        List<AIExplanation> previousExplanations = explanationDataProvider.getPreviousExplanations(
-                request.getStudentId(),
-                request.getMaterialId()
-        );
+        // Delegate to AI Task which handles all data gathering and explanation generation
+        AIResponse response = explanationTask.execute(request);
 
-        List<String> previousQuestions = previousExplanations.stream()
-                .map(AIExplanation::getStudentQuestion)
-                .toList();
-
-        List<String> previousAnswers = previousExplanations.stream()
-                .map(AIExplanation::getExplanation)
-                .toList();
-
-        // Delegate material content fetching to CourseDataProvider (SRP compliance)
-        MaterialContentResponseDTO materialContent = courseDataProvider.getMaterialContent(request.getMaterialId());
-
-        // Execute the explanation generation task with previous context and material content
-        AIResponse response = explanationTask.execute(request, previousQuestions, previousAnswers, materialContent);
-
-        // Delegate saving to ExplanationDataProvider (SRP compliance)
-        if (response != null && response.getResult() != null) {
-            explanationDataProvider.saveExplanation(
-                    request.getStudentId(),
-                    request.getMaterialId(),
-                    request.getStudentQuestion(),
-                    response.getResult()
-            );
-        }
+        log.info("Material explanation completed for student: {}, material: {}",
+                request.getStudentId(), request.getMaterialId());
 
         return response;
     }

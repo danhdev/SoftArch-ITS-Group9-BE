@@ -1,0 +1,455 @@
+@startuml AI-Service-Architecture
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 100
+skinparam packageStyle rectangle
+
+title AI Service - Class Diagram (Vertical Layout)\nIntelligent Tutoring System
+
+' ==================== CONTROLLERS ====================
+package "controllers" #E8F5E9 {
+    class FeedbackController {
+        - feedbackService: ITestFeedbackService
+        + generateFeedback(): ResponseEntity
+        + history(): ResponseEntity
+        + byAssessment(): ResponseEntity
+    }
+
+    class HintController {
+        - hintService: HintService
+        + generateHint(): ResponseEntity
+        + getHintHistory(): ResponseEntity
+    }
+
+    class MaterialController {
+        - materialService: IMaterialService
+        + recommend(): ResponseEntity
+        + explain(): ResponseEntity
+        + getExplainHistory(): ResponseEntity
+    }
+}
+
+' ==================== SERVICES ====================
+package "services" #E3F2FD {
+    interface ITestFeedbackService {
+        + feedback(): AIResponse
+        + getHistory(): List<FeedbackRecord>
+        + getByAssessment(): Optional<FeedbackRecord>
+    }
+
+    interface ITestFeedbackHistoryService {
+        + getHistory(): List<FeedbackRecord>
+        + save(): FeedbackRecord
+    }
+
+    interface HintService {
+        + hint(): AIResponse
+        + getHintHistory(): List<HintResponseDTO>
+    }
+
+    interface IMaterialService {
+        + recommend(): AIResponse
+        + explain(): AIResponse
+        + getExplainHistory(): List<AIExplainResponseDTO>
+    }
+
+    class TestFeedbackServiceImpl {
+        - testFeedbackGenerationTask
+        - testDataProvider
+        - feedbackDataProvider
+    }
+
+    class TestFeedbackHistoryServiceImpl {
+        - feedbackHistoryRepository
+    }
+
+    class HintServiceImpl {
+        - hintGenerationTask
+        - hintDataProvider
+        - testDataProvider
+        - courseDataProvider
+    }
+
+    class MaterialServiceImpl {
+        - recommendationTask
+        - explanationTask
+        - courseDataProvider
+        - explanationDataProvider
+        - recommendationDataProvider
+    }
+}
+
+' ==================== AI TASKS (Strategy Pattern) ====================
+package "tasks" #FFF9C4 {
+    interface "AITask<T>" as AITask {
+        + execute(): AIResponse
+        + getTaskType(): String
+    }
+
+    class TestFeedbackGenerationTask {
+        - llmClient: LLMClient
+        - buildPrompt: TestFeedbackBuildPrompt
+        + execute()
+    }
+
+    class HintGenerationTask {
+        - llmClient: LLMClient
+        - buildPrompt: HintGenerationBuildPrompt
+        + execute()
+    }
+
+    class MaterialExplanationTask {
+        - llmClient: LLMClient
+        - buildPrompt: MaterialExplanationBuildPrompt
+        + execute()
+    }
+
+    class MaterialRecommendationTask {
+        - llmClient: LLMClient
+        - buildPrompt: MaterialRecommendationBuildPrompt
+        + execute()
+    }
+}
+
+' ==================== DATA PROVIDERS (Facade) ====================
+package "dataproviders" #F3E5F5 {
+    interface FeedbackDataProvider {
+        + saveFeedback(): FeedbackRecord
+        + getFeedbackHistory(): List<FeedbackRecord>
+        + getFeedbackByAssessment(): Optional<FeedbackRecord>
+    }
+
+    interface HintDataProvider {
+        + getPreviousHintTexts(): List<String>
+        + saveHint(): AIHint
+        + getHintHistory(): List<AIHint>
+    }
+
+    interface ExplanationDataProvider {
+        + getPreviousExplanations(): List<AIExplanation>
+        + extractQuestions(): List<String>
+        + extractAnswers(): List<String>
+        + saveExplanation(): AIExplanation
+        + getExplanationHistory(): List<AIExplanation>
+    }
+
+    interface CourseDataProvider {
+        + getCourseName(): String
+        + getMaterialChapters(): List<ChapterDTO>
+        + getCourseMaterials(): List<MaterialDTO>
+        + getMaterialContent(): MaterialContentResponseDTO
+    }
+
+    interface TestDataProvider {
+        + getTestContext(): TestResponseDTO
+        + getTestContextForStudent(): TestResponseDTO
+        + findQuestion(): Optional<QuestionDTO>
+    }
+
+    interface RecommendationDataProvider {
+        + saveRecommendation(): MaterialRecommendationRecord
+        + getRecommendationHistory(): List<MaterialRecommendationRecord>
+        + getLatestRecommendation(): Optional<MaterialRecommendationRecord>
+    }
+
+    class FeedbackDataProviderImpl
+    class HintDataProviderImpl
+    class ExplanationDataProviderImpl
+    class CourseDataProviderImpl
+    class TestDataProviderImpl
+    class RecommendationDataProviderImpl
+}
+
+' ==================== PROMPT BUILDERS (Strategy) ====================
+package "prompts" #E8F5E9 {
+    interface "BuildPrompt<T>" as BuildPrompt {
+        + buildPrompt(): String
+        + getPromptType(): PromptType
+    }
+
+    class TestFeedbackBuildPrompt
+    class HintGenerationBuildPrompt
+    class MaterialExplanationBuildPrompt
+    class MaterialRecommendationBuildPrompt
+
+    enum PromptType {
+        FEEDBACK
+        HINT_GENERATION
+        MATERIAL_EXPLANATION
+        MATERIAL_RECOMMENDATION
+    }
+}
+
+' ==================== LLM INTEGRATION ====================
+package "llm" #FFF3E0 {
+    interface LLMClient {
+        + chat(): String
+    }
+
+    class OpenAIClientImpl {
+        - chatClient: ChatClient
+        - apiKey: String
+        + chat(): String
+    }
+
+    enum OpenAIModels {
+        GPT_4O
+        GPT_4O_MINI
+        GPT_3_5_TURBO
+    }
+}
+
+' ==================== PROXY CLIENTS (Feign) ====================
+package "proxy" #E0F2F1 {
+    interface MaterialProxyClient {
+        + getChaptersByCourse(): MaterialApiResponse
+        + getMaterialsByChapter(): MaterialApiResponse
+        + getMaterialContent(): ResponseObject
+    }
+
+    interface TestProxyClient {
+        + getTestByStudentAndCourse(): TestResponseDTO
+        + getTestByCourseAndAssessment(): TestResponseDTO
+        + getCourse(): ResponseObject<List<CourseDTO>>
+    }
+}
+
+' ==================== DTOs (Key Classes) ====================
+package "dto" #FFFDE7 {
+    class AIResponse {
+        - result: String
+        - metadata: Map
+    }
+
+    class "ResponseObject<T>" as ResponseObject {
+        - status: int
+        - message: String
+        - data: T
+    }
+
+    class AIFeedbackRequest {
+        - studentId: String
+        - courseId: String
+        - assessmentId: String
+    }
+
+    class AIHintRequest {
+        - studentId: Long
+        - courseId: String
+        - questionId: Long
+    }
+
+    class AIMaterialRequest {
+        - studentId: String
+        - courseId: String
+        - preferredDifficulty: String
+    }
+
+    class AIExplainRequest {
+        - studentId: Long
+        - materialId: Long
+        - studentQuestion: String
+    }
+
+    class TestResponseDTO
+    class QuestionDTO
+    class MaterialDTO
+    class HintResponseDTO
+    class AIExplainResponseDTO
+}
+
+' ==================== MODELS (Entities) ====================
+package "models" #E8EAF6 {
+    class FeedbackRecord {
+        - id: Long
+        - studentId: String
+        - courseId: String
+        - assessmentId: String
+        - feedbackText: String
+        - createdAt: LocalDateTime
+    }
+
+    class AIHint {
+        - id: Long
+        - studentId: Long
+        - questionId: Long
+        - hint: String
+        - createdAt: LocalDateTime
+    }
+
+    class AIExplanation {
+        - id: Long
+        - studentId: Long
+        - materialId: Long
+        - studentQuestion: String
+        - explanation: String
+        - createdAt: LocalDateTime
+    }
+
+    class MaterialRecommendationRecord {
+        - id: Long
+        - studentId: String
+        - courseId: String
+        - recommendationText: String
+        - preferredDifficulty: String
+        - createdAt: LocalDateTime
+    }
+
+    class StudentProfile {
+        - studentId: String
+        - skillMasteryMap: Map
+        - weaknessAreas: List
+        - recommendedLearningPath: List
+    }
+}
+
+' ==================== REPOSITORIES (JPA) ====================
+package "repositories" #FFEBEE {
+    interface FeedbackHistoryRepository {
+        + findByStudentId(): List<FeedbackRecord>
+        + findByStudentIdAndAssessmentId(): Optional<FeedbackRecord>
+    }
+
+    interface AIHintRepository {
+        + findByStudentIdAndQuestionIdOrderByCreatedAtAsc(): List<AIHint>
+    }
+
+    interface AIExplanationRepository {
+        + findByStudentIdAndMaterialIdOrderByCreatedAtAsc(): List<AIExplanation>
+    }
+
+    interface MaterialRecommendationRepository {
+        + findByStudentIdOrderByCreatedAtDesc(): List<MaterialRecommendationRecord>
+    }
+
+    interface StudentProfileRepository
+}
+
+' ==================== LAYOUT HINTS ====================
+controllers -[hidden]down-> services
+services -[hidden]down-> tasks
+tasks -[hidden]down-> dataproviders
+dataproviders -[hidden]down-> prompts
+prompts -[hidden]down-> llm
+llm -[hidden]down-> proxy
+proxy -[hidden]down-> dto
+dto -[hidden]down-> models
+models -[hidden]down-> repositories
+
+' ==================== RELATIONSHIPS ====================
+
+' Controllers -> Services
+FeedbackController -down-> ITestFeedbackService
+HintController -down-> HintService
+MaterialController -down-> IMaterialService
+
+' Service Implementations
+ITestFeedbackService <|.down. TestFeedbackServiceImpl
+ITestFeedbackHistoryService <|.down. TestFeedbackHistoryServiceImpl
+HintService <|.down. HintServiceImpl
+IMaterialService <|.down. MaterialServiceImpl
+
+' Services -> Tasks
+TestFeedbackServiceImpl -down-> TestFeedbackGenerationTask
+HintServiceImpl -down-> HintGenerationTask
+MaterialServiceImpl -down-> MaterialRecommendationTask
+MaterialServiceImpl -down-> MaterialExplanationTask
+
+' Services -> DataProviders
+TestFeedbackServiceImpl -down-> TestDataProvider
+TestFeedbackServiceImpl -down-> FeedbackDataProvider
+HintServiceImpl -down-> HintDataProvider
+HintServiceImpl -down-> TestDataProvider
+HintServiceImpl -down-> CourseDataProvider
+MaterialServiceImpl -down-> CourseDataProvider
+MaterialServiceImpl -down-> ExplanationDataProvider
+MaterialServiceImpl -down-> RecommendationDataProvider
+
+' Tasks implement AITask
+AITask <|.down. TestFeedbackGenerationTask
+AITask <|.down. HintGenerationTask
+AITask <|.down. MaterialRecommendationTask
+AITask <|.down. MaterialExplanationTask
+
+' Tasks -> LLM & Prompts
+TestFeedbackGenerationTask -down-> LLMClient
+TestFeedbackGenerationTask -down-> TestFeedbackBuildPrompt
+HintGenerationTask -down-> LLMClient
+HintGenerationTask -down-> HintGenerationBuildPrompt
+MaterialRecommendationTask -down-> LLMClient
+MaterialRecommendationTask -down-> MaterialRecommendationBuildPrompt
+MaterialExplanationTask -down-> LLMClient
+MaterialExplanationTask -down-> MaterialExplanationBuildPrompt
+
+' LLM Implementation
+LLMClient <|.down. OpenAIClientImpl
+OpenAIClientImpl .down.> OpenAIModels
+
+' BuildPrompt implementations
+BuildPrompt <|.down. TestFeedbackBuildPrompt
+BuildPrompt <|.down. HintGenerationBuildPrompt
+BuildPrompt <|.down. MaterialRecommendationBuildPrompt
+BuildPrompt <|.down. MaterialExplanationBuildPrompt
+BuildPrompt .down.> PromptType
+
+' DataProvider implementations
+FeedbackDataProvider <|.down. FeedbackDataProviderImpl
+HintDataProvider <|.down. HintDataProviderImpl
+ExplanationDataProvider <|.down. ExplanationDataProviderImpl
+CourseDataProvider <|.down. CourseDataProviderImpl
+TestDataProvider <|.down. TestDataProviderImpl
+RecommendationDataProvider <|.down. RecommendationDataProviderImpl
+
+' DataProviders -> Repositories & Proxies
+FeedbackDataProviderImpl -down-> FeedbackHistoryRepository
+FeedbackDataProviderImpl -down-> ITestFeedbackHistoryService
+HintDataProviderImpl -down-> AIHintRepository
+ExplanationDataProviderImpl -down-> AIExplanationRepository
+RecommendationDataProviderImpl -down-> MaterialRecommendationRepository
+CourseDataProviderImpl -down-> MaterialProxyClient
+CourseDataProviderImpl -down-> TestProxyClient
+TestDataProviderImpl -down-> TestProxyClient
+
+' Repositories -> Models
+FeedbackHistoryRepository .down.> FeedbackRecord : manages
+AIHintRepository .down.> AIHint : manages
+AIExplanationRepository .down.> AIExplanation : manages
+MaterialRecommendationRepository .down.> MaterialRecommendationRecord : manages
+StudentProfileRepository .down.> StudentProfile : manages
+
+' History Service -> Repository
+TestFeedbackHistoryServiceImpl -down-> FeedbackHistoryRepository
+
+' DTOs usage
+FeedbackController .down.> AIFeedbackRequest
+FeedbackController .down.> ResponseObject
+HintController .down.> AIHintRequest
+MaterialController .down.> AIMaterialRequest
+MaterialController .down.> AIExplainRequest
+AITask .down.> AIResponse
+
+legend right
+  |= Symbol |= Meaning |
+  | <|.. | Implements interface |
+  | --> | Direct dependency |
+  | ..> | Indirect usage |
+
+  **Design Patterns:**
+  • Strategy Pattern: AITask, BuildPrompt
+  • Dependency Inversion: All services depend on interfaces
+  • Repository Pattern: JPA repositories
+  • Proxy Pattern: Feign clients
+  • Facade Pattern: DataProviders abstract data access
+
+  **Layers:**
+  • Controllers (Presentation)
+  • Services (Orchestration)
+  • Tasks (Business Logic)
+  • DataProviders (Data Access)
+  • Repositories (Persistence)
+endlegend
+
+@enduml
+
