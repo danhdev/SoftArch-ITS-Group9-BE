@@ -3,7 +3,9 @@ package com.example.course.service.service.impl;
 import com.example.course.service.dto.MaterialDTO;
 import com.example.course.service.exception.ResourceNotFoundException;
 import com.example.course.service.mapper.MaterialMapper;
+import com.example.course.service.model.chapter.Chapter;
 import com.example.course.service.model.material.Material;
+import com.example.course.service.repository.IChapterRepository;
 import com.example.course.service.repository.IMaterialRepository;
 import com.example.course.service.service.IMaterialManagementService;
 import com.example.course.service.util.content.ContentReader;
@@ -32,11 +34,14 @@ public class MaterialManagementServiceImpl implements IMaterialManagementService
     private final ContentReader contentReader;
     private final MinioClient minioClient;
     private final ObjectMapper objectMapper;
+    private final IChapterRepository chapterRepository;
 
     @Override
     public void createMaterial(String chapterId, MaterialDTO dto) {
         Material material = materialMapper.toEntity(dto);
-        material.setChapterId(chapterId);
+        // material.setChapterId(chapterId);
+        Chapter chap = chapterRepository.findById(chapterId).orElse(null);
+        material.setChapter(chap);
         materialRepository.save(material);
     }
 

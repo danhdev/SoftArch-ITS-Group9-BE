@@ -51,10 +51,10 @@ public class CoreCourseController {
     }
 
     @Operation(summary = "Cập nhật chapter đã có trong course")
-    @PutMapping("chapter")
-    public ResponseEntity<ResponseObject> updateChapter(@PathVariable String courseId, @RequestBody ChapterDTO chapterDTO) {
+    @PutMapping("chapter/{chapterId}")
+    public ResponseEntity<ResponseObject> updateChapter(@PathVariable String courseId, @PathVariable String chapterId, @RequestBody ChapterDTO chapterDTO) {
         //TODO: process POST request
-        chapterManagementService.updateChapter(courseId, chapterDTO);
+        chapterManagementService.updateChapter(courseId, chapterId, chapterDTO);
         // return new ResponseObject("updated chapter successfully", 201, chapterDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 ResponseObject.builder()

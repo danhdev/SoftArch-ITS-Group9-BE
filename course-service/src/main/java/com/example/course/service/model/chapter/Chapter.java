@@ -11,6 +11,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
 import lombok.Data;
 
 @Entity
@@ -24,6 +25,6 @@ public class Chapter {
     String title;
     int orderIndex;
     DifficultyLevel difficulty;
-    @ManyToMany
+    @OneToMany(mappedBy = "chapter")
     List<Material> materials;
 }

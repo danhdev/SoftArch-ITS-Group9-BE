@@ -25,9 +25,13 @@ public class ChapterManagementServiceImpl implements IChapterManagementService {
     }
 
     @Override
-    public ChapterDTO updateChapter(String chapterId, ChapterDTO chapter) {
+    public ChapterDTO updateChapter(String courseId, String chapterId, ChapterDTO chapter) {
         // TODO Auto-generated method stub
-        createChapter(chapterId, chapter);
+        Chapter editChapter = chapterRepo.findById(chapterId).orElseThrow();
+        editChapter.setCourseId(chapter.getCourseId());
+        editChapter.setDifficulty(chapter.getDifficulty());
+        editChapter.setOrderIndex(chapter.getOrderIndex());
+        editChapter.setTitle(chapter.getTitle());
         return chapter;
     }
 

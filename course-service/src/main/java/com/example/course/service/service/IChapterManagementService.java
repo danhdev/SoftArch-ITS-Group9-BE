@@ -9,7 +9,7 @@ import com.example.course.service.dto.ChapterDTO;
 @Service
 public interface IChapterManagementService {
     ChapterDTO createChapter(String courseId, ChapterDTO chapter);
-    ChapterDTO updateChapter(String courseId, ChapterDTO chapter);
+    ChapterDTO updateChapter(String courseId, String chapterId, ChapterDTO chapter);
     List<ChapterDTO> listChapters(String courseId);
     ChapterDTO deleteChapter(String chapterId);
 }

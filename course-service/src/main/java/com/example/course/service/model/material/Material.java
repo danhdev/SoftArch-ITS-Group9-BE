@@ -1,5 +1,7 @@
 package com.example.course.service.model.material;
 
+import com.example.course.service.model.chapter.Chapter;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,9 +16,11 @@ public abstract class Material {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
-    private String chapterId;
     private String title;
 
     @Column(name = "material_type", insertable = false, updatable = false)
     private String type;
+    @ManyToOne
+    @JoinColumn(name = "chapterId")
+    Chapter chapter;
 }
