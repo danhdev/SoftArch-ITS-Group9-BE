@@ -32,6 +32,7 @@ public class ChapterManagementServiceImpl implements IChapterManagementService {
         editChapter.setDifficulty(chapter.getDifficulty());
         editChapter.setOrderIndex(chapter.getOrderIndex());
         editChapter.setTitle(chapter.getTitle());
+        chapterRepo.save(editChapter);
         return chapter;
     }
 
