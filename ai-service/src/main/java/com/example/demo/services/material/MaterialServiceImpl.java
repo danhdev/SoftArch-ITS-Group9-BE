@@ -46,7 +46,6 @@ public class MaterialServiceImpl implements IMaterialService {
     private final MaterialProxyClient materialProxyClient;
     private final MaterialRecommendationRepository recommendationRepository;
     private final AIExplanationRepository explanationRepository;
-    private final MaterialProxyClient materialProxyClient;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 

@@ -46,8 +46,8 @@ public interface MaterialProxyClient {
     MaterialApiResponse<List<MaterialDTO>> getMaterialsByChapter(
             @PathVariable("chapterId") String chapterId
     );
-}
-     * Fetch content/materials for a specific chapter.
+
+     /* Fetch content/materials for a specific chapter.
      *
      * @param courseId  the course identifier
      * @param chapterId the chapter identifier
