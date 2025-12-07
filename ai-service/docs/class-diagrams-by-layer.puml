@@ -1,0 +1,1421 @@
+@startuml AI-Service-Layered-Architecture
+!theme plain
+skinparam linetype ortho
+skinparam packageStyle rectangle
+
+title AI-Service Layered Architecture Overview
+
+package "Presentation Layer" #LightGreen {
+    [FeedbackController]
+    [HintController]
+    [MaterialController]
+}
+
+package "Service Layer" #LightBlue {
+    package "Feedback Services" {
+        [ITestFeedbackService]
+        [TestFeedbackServiceImpl]
+        [ITestFeedbackHistoryService]
+        [TestFeedbackHistoryServiceImpl]
+    }
+    
+    package "Hint Services" {
+        [HintService]
+        [HintServiceImpl]
+    }
+    
+    package "Material Services" {
+        [IMaterialService]
+        [MaterialServiceImpl]
+    }
+    
+    package "Profile Services" {
+        [IStudentProfileService]
+        [StudentProfileServiceImpl]
+    }
+}
+
+package "Data Provider Layer" #LightYellow {
+    package "Data Provider Interfaces" {
+        [CourseDataProvider]
+        [TestDataProvider]
+        [HintDataProvider]
+        [ExplanationDataProvider]
+        [RecommendationDataProvider]
+        [FeedbackDataProvider]
+    }
+    
+    package "Data Provider Implementations" {
+        [CourseDataProviderImpl]
+        [TestDataProviderImpl]
+        [HintDataProviderImpl]
+        [ExplanationDataProviderImpl]
+        [RecommendationDataProviderImpl]
+        [FeedbackDataProviderImpl]
+    }
+}
+
+package "AI Task Layer" #Wheat {
+    [TestFeedbackGenerationTask]
+    [HintGenerationTask]
+    [MaterialRecommendationTask]
+    [MaterialExplanationTask]
+}
+
+package "Prompt Building Layer" #Thistle {
+    [TestFeedbackBuildPrompt]
+    [HintGenerationBuildPrompt]
+    [MaterialRecommendationBuildPrompt]
+    [MaterialExplanationBuildPrompt]
+}
+
+package "LLM Integration Layer" #LightCyan {
+    [LLMClient] <<interface>>
+    [OpenAIClientImpl]
+}
+
+package "External Services Integration" #LightGray {
+    [TestProxyClient]
+    [MaterialProxyClient]
+}
+
+package "Data Access Layer" #Lavender {
+    [FeedbackHistoryRepository]
+    [AIHintRepository]
+    [AIExplanationRepository]
+    [MaterialRecommendationRepository]
+    [StudentProfileRepository]
+}
+
+package "Domain Model" #MistyRose {
+    [FeedbackRecord]
+    [AIHint]
+    [AIExplanation]
+    [MaterialRecommendationRecord]
+    [StudentProfile]
+}
+
+' Relationships
+[FeedbackController] --> [ITestFeedbackService]
+[HintController] --> [HintService]
+[MaterialController] --> [IMaterialService]
+
+[TestFeedbackServiceImpl] --> [TestFeedbackGenerationTask]
+[HintServiceImpl] --> [HintGenerationTask]
+[MaterialServiceImpl] --> [MaterialRecommendationTask]
+[MaterialServiceImpl] --> [MaterialExplanationTask]
+
+[TestFeedbackGenerationTask] --> [TestFeedbackBuildPrompt]
+[HintGenerationTask] --> [HintGenerationBuildPrompt]
+[MaterialRecommendationTask] --> [MaterialRecommendationBuildPrompt]
+[MaterialExplanationTask] --> [MaterialExplanationBuildPrompt]
+
+[TestFeedbackGenerationTask] --> [LLMClient]
+[HintGenerationTask] --> [LLMClient]
+[MaterialRecommendationTask] --> [LLMClient]
+[MaterialExplanationTask] --> [LLMClient]
+
+[OpenAIClientImpl] ..|> [LLMClient]
+
+[TestFeedbackServiceImpl] --> [TestDataProvider]
+[TestFeedbackServiceImpl] --> [FeedbackDataProvider]
+[HintServiceImpl] --> [CourseDataProvider]
+[HintServiceImpl] --> [TestDataProvider]
+[HintServiceImpl] --> [HintDataProvider]
+[MaterialServiceImpl] --> [CourseDataProvider]
+[MaterialServiceImpl] --> [ExplanationDataProvider]
+[MaterialServiceImpl] --> [RecommendationDataProvider]
+
+' DataProvider implementations
+[CourseDataProviderImpl] ..|> [CourseDataProvider]
+[TestDataProviderImpl] ..|> [TestDataProvider]
+[FeedbackDataProviderImpl] ..|> [FeedbackDataProvider]
+[HintDataProviderImpl] ..|> [HintDataProvider]
+[ExplanationDataProviderImpl] ..|> [ExplanationDataProvider]
+[RecommendationDataProviderImpl] ..|> [RecommendationDataProvider]
+
+' DataProviders to external services/repositories
+[CourseDataProviderImpl] --> [TestProxyClient]
+[CourseDataProviderImpl] --> [MaterialProxyClient]
+[TestDataProviderImpl] --> [TestProxyClient]
+[HintDataProviderImpl] --> [AIHintRepository]
+[ExplanationDataProviderImpl] --> [AIExplanationRepository]
+[RecommendationDataProviderImpl] --> [MaterialRecommendationRepository]
+
+[TestFeedbackHistoryServiceImpl] --> [FeedbackHistoryRepository]
+[StudentProfileServiceImpl] --> [StudentProfileRepository]
+
+@enduml
+
+
+@startuml AI-Service-Controllers
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+
+title Controllers Class Diagram
+
+package "controllers" {
+    class FeedbackController <<@RestController>> {
+        -feedbackService: ITestFeedbackService
+        --
+        +generateFeedback(request: AIFeedbackRequest): ResponseEntity<ResponseObject<AIResponse>>
+        +history(studentId: String): ResponseEntity<ResponseObject<List<FeedbackRecord>>>
+        +byAssessment(studentId: String, assessmentId: String): ResponseEntity<ResponseObject<FeedbackRecord>>
+    }
+    
+    class HintController <<@RestController>> {
+        -hintService: HintService
+        --
+        +generateHint(request: AIHintRequest): ResponseEntity<ResponseObject<AIResponse>>
+        +getHintHistory(studentId: Long, questionId: Long): ResponseEntity<ResponseObject<List<HintResponseDTO>>>
+    }
+    
+    class MaterialController <<@RestController>> {
+        -materialService: IMaterialService
+        --
+        +recommend(request: AIMaterialRequest): ResponseEntity<ResponseObject<AIResponse>>
+        +explain(request: AIExplainRequest): ResponseEntity<ResponseObject<AIResponse>>
+        +getExplainHistory(studentId: Long, materialId: Long): ResponseEntity<ResponseObject<List<AIExplainResponseDTO>>>
+    }
+}
+
+package "services.feedback" {
+    interface ITestFeedbackService
+}
+
+package "services.hint" {
+    interface HintService
+}
+
+package "services.material" {
+    interface IMaterialService
+}
+
+FeedbackController --> ITestFeedbackService : uses
+HintController --> HintService : uses
+MaterialController --> IMaterialService : uses
+
+note right of FeedbackController
+  @RequestMapping("/api/v1/feedback")
+  Handles test/assessment feedback
+end note
+
+note right of HintController
+  @RequestMapping("/api/v1/hints")
+  Handles hint generation for questions
+end note
+
+note right of MaterialController
+  @RequestMapping("/api/v1/materials")
+  Handles material recommendations
+  and explanations
+end note
+
+@enduml
+
+
+@startuml AI-Service-DTOs
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 10
+
+title Data Transfer Objects (DTOs) Class Diagram
+
+package "dto - Response DTOs" #LightBlue {
+    class AIResponse {
+        -result: String
+        -metadata: Map<String, Object>
+        --
+        +{static} of(result: String): AIResponse
+        +{static} of(result: String, metadata: Map): AIResponse
+    }
+    
+    class ResponseObject<T> <<Generic>> {
+        -status: int
+        -message: String
+        -data: T
+        --
+        +{static} success(message: String, data: T): ResponseObject<T>
+        +{static} success(data: T): ResponseObject<T>
+        +{static} error(status: int, message: String): ResponseObject<T>
+    }
+    
+    class AIExplainResponseDTO {
+        -explanationId: Long
+        -studentId: Long
+        -materialId: Long
+        -studentQuestion: String
+        -explanation: String
+        -createdAt: String
+    }
+    
+    class HintResponseDTO {
+        -hintId: Long
+        -questionId: Long
+        -studentId: Long
+        -hint: String
+        -hintCount: Integer
+        -createdAt: String
+    }
+    
+    class FeedbackInsights {
+        -skillsImproved: List<String>
+        -weakPoints: List<String>
+        -suggestedResources: List<String>
+    }
+}
+
+package "dto - Domain DTOs" #LightGreen {
+    class TestResponseDTO {
+        -courseId: Long
+        -testId: Long
+        -studentId: Long
+        -title: String
+        -description: String
+        -dateTaken: String
+        -timeStart: String
+        -timeLimit: String
+        -questionList: List<QuestionDTO>
+    }
+    
+    class QuestionDTO {
+        -questionId: Long
+        -questionText: String
+        -options: List<String>
+        -correctAnswer: String
+        -studentAnswer: String
+    }
+    
+    class ChapterDTO {
+        -courseId: String
+        -title: String
+        -orderIndex: int
+        -difficulty: DifficultyLevel
+    }
+    
+    enum DifficultyLevel {
+        EASY
+        MEDIUM
+        HARD
+    }
+    
+    class CourseDTO {
+        -name: String
+        -description: String
+        -courseStatus: String
+        -teacherId: String
+    }
+    
+    class MaterialDTO {
+        -contentOrUrl: String
+        -metadata: String
+        -title: String
+        -type: String
+    }
+    
+    class MaterialContentResponseDTO {
+        -fileName: String
+        -pages: String
+        -content: String
+    }
+    
+    class ChapterContentResponseDTO {
+        -data: List<MaterialDTO>
+    }
+}
+
+package "dto.request - Request DTOs" #Wheat {
+    class AIFeedbackRequest {
+        -studentId: String
+        -courseId: String
+        -assessmentId: String
+    }
+    
+    class AIHintRequest {
+        -courseId: String
+        -assessmentId: String
+        -questionId: Long
+        -studentId: Long
+    }
+    
+    class AIMaterialRequest {
+        -studentId: String
+        -courseId: String
+        -studentPrompt: String
+        -preferredDifficulty: String
+        -preferredType: String
+    }
+    
+    class AIExplainRequest {
+        -studentId: Long
+        -materialId: Long
+        -studentQuestion: String
+    }
+}
+
+package "dto.material - Material API DTOs" #Thistle {
+    class "ChapterDTO" as MatChapterDTO {
+        -chapterId: String
+        -courseId: String
+        -title: String
+        -orderIndex: Integer
+        -difficulty: String
+    }
+    
+    class "MaterialDTO" as MatMaterialDTO {
+        -title: String
+        -type: String
+        -contentOrUrl: String
+        -metadata: String
+    }
+    
+    class CourseMaterialsDTO {
+        -courseId: String
+        -chapters: List<ChapterDTO>
+        -materials: List<MaterialDTO>
+    }
+    
+    class MaterialApiResponse<T> <<Generic>> {
+        -status: Integer
+        -message: String
+        -data: T
+    }
+}
+
+' Relationships
+TestResponseDTO "1" *-- "*" QuestionDTO : contains
+ChapterDTO --> DifficultyLevel : uses
+ChapterContentResponseDTO "1" *-- "*" MaterialDTO : contains
+CourseMaterialsDTO "1" *-- "*" MatChapterDTO : contains
+CourseMaterialsDTO "1" *-- "*" MatMaterialDTO : contains
+
+@enduml
+
+
+@startuml AI-Service-Services-Feedback
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+
+title Feedback Service Layer Class Diagram
+
+package "services.feedback" #MistyRose {
+    interface ITestFeedbackService {
+        +feedback(request: AIFeedbackRequest): AIResponse
+        +getHistory(studentId: String): List<FeedbackRecord>
+        +getByAssessment(studentId: String, assessmentId: String): Optional<FeedbackRecord>
+    }
+    
+    interface ITestFeedbackHistoryService {
+        +getHistory(studentId: String): List<FeedbackRecord>
+        +getByAssessment(studentId: String, assessmentId: String): Optional<FeedbackRecord>
+        +save(record: FeedbackRecord): FeedbackRecord
+    }
+    
+    class TestFeedbackServiceImpl <<@Service>> {
+        -testFeedbackGenerationTask: TestFeedbackGenerationTask
+        -feedbackHistoryService: ITestFeedbackHistoryService
+        -studentProfileService: IStudentProfileService
+        -testProxyClient: TestProxyClient
+        --
+        +feedback(request: AIFeedbackRequest): AIResponse
+        +getHistory(studentId: String): List<FeedbackRecord>
+        +getByAssessment(studentId: String, assessmentId: String): Optional<FeedbackRecord>
+    }
+    
+    class TestFeedbackHistoryServiceImpl <<@Service>> {
+        -feedbackHistoryRepository: FeedbackHistoryRepository
+        --
+        +getHistory(studentId: String): List<FeedbackRecord>
+        +getByAssessment(studentId: String, assessmentId: String): Optional<FeedbackRecord>
+        +save(record: FeedbackRecord): FeedbackRecord
+    }
+    
+    class TestFeedbackGenerationTask <<@Component>> {
+        -{static} TASK_TYPE: String = "FEEDBACK_GENERATION"
+        -llmClient: LLMClient
+        -buildPrompt: TestFeedbackBuildPrompt
+        --
+        +execute(request: AIFeedbackRequest): AIResponse
+        +execute(request: AIFeedbackRequest, testContext: TestResponseDTO): AIResponse
+        +getTaskType(): String
+    }
+}
+
+package "services.task" {
+    interface "AITask<T>" as AITask {
+        +execute(request: T): AIResponse
+        +getTaskType(): String
+    }
+}
+
+package "services.prompt.impl" {
+    class TestFeedbackBuildPrompt
+}
+
+package "llm" {
+    interface LLMClient
+}
+
+package "proxy" {
+    interface TestProxyClient
+}
+
+package "repository" {
+    interface FeedbackHistoryRepository
+}
+
+package "services.profiles" {
+    interface IStudentProfileService
+}
+
+' Implementations
+TestFeedbackServiceImpl ..|> ITestFeedbackService
+TestFeedbackHistoryServiceImpl ..|> ITestFeedbackHistoryService
+TestFeedbackGenerationTask ..|> AITask
+
+' Dependencies
+TestFeedbackServiceImpl --> TestFeedbackGenerationTask : uses
+TestFeedbackServiceImpl --> ITestFeedbackHistoryService : uses
+TestFeedbackServiceImpl --> IStudentProfileService : uses
+TestFeedbackServiceImpl --> TestProxyClient : uses
+
+TestFeedbackHistoryServiceImpl --> FeedbackHistoryRepository : uses
+
+TestFeedbackGenerationTask --> LLMClient : uses
+TestFeedbackGenerationTask --> TestFeedbackBuildPrompt : uses
+
+note bottom of TestFeedbackServiceImpl
+  Main service orchestrating
+  feedback generation workflow
+end note
+
+note bottom of TestFeedbackGenerationTask
+  AI Task implementing Strategy Pattern
+  for feedback generation
+end note
+
+@enduml
+
+
+@startuml AI-Service-Services-Hint
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+
+title Hint Service Layer Class Diagram
+
+package "services.hint" #HoneyDew {
+    interface HintService {
+        +hint(request: AIHintRequest): AIResponse
+        +getHintHistory(studentId: Long, questionId: Long): List<HintResponseDTO>
+    }
+    
+    class HintServiceImpl <<@Service>> {
+        -hintGenerationTask: HintGenerationTask
+        -hintRepository: AIHintRepository
+        -testProxyClient: TestProxyClient
+        -materialProxyClient: MaterialProxyClient
+        --
+        +hint(request: AIHintRequest): AIResponse
+        +getHintHistory(studentId: Long, questionId: Long): List<HintResponseDTO>
+        -fetchPreviousHints(studentId: Long, questionId: Long): List<String>
+        -saveHintToDatabase(studentId: Long, questionId: Long, hintText: String): void
+        -fetchTestContext(courseId: String, assessmentId: String): TestResponseDTO
+        -findQuestion(testContext: TestResponseDTO, questionId: Long): QuestionDTO
+        -fetchCourseName(courseId: String): String
+        -fetchCourseMaterials(courseId: String): List<MaterialDTO>
+    }
+    
+    class HintGenerationTask <<@Component>> {
+        -{static} TASK_TYPE: String = "HINT_GENERATION"
+        -llmClient: LLMClient
+        -buildPrompt: HintGenerationBuildPrompt
+        --
+        +execute(request: AIHintRequest): AIResponse
+        +execute(request: AIHintRequest, previousHints: List<String>, ..): AIResponse
+        +getTaskType(): String
+    }
+}
+
+package "services.task" {
+    interface "AITask<T>" as AITask
+}
+
+package "services.prompt.impl" {
+    class HintGenerationBuildPrompt
+}
+
+package "llm" {
+    interface LLMClient
+}
+
+package "proxy" {
+    interface TestProxyClient
+    interface MaterialProxyClient
+}
+
+package "repository" {
+    interface AIHintRepository
+}
+
+' Implementations
+HintServiceImpl ..|> HintService
+HintGenerationTask ..|> AITask
+
+' Dependencies
+HintServiceImpl --> HintGenerationTask : uses
+HintServiceImpl --> AIHintRepository : uses
+HintServiceImpl --> TestProxyClient : uses
+HintServiceImpl --> MaterialProxyClient : uses
+
+HintGenerationTask --> LLMClient : uses
+HintGenerationTask --> HintGenerationBuildPrompt : uses
+
+note bottom of HintServiceImpl
+  Orchestrates hint generation
+  with progressive difficulty
+  based on previous hints
+end note
+
+@enduml
+
+
+@startuml AI-Service-Services-Material
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+
+title Material Service Layer Class Diagram
+
+package "services.material" #AliceBlue {
+    interface IMaterialService {
+        +recommend(request: AIMaterialRequest): AIResponse
+        +explain(request: AIExplainRequest): AIResponse
+        +getExplainHistory(studentId: Long, materialId: Long): List<AIExplainResponseDTO>
+    }
+    
+    class MaterialServiceImpl <<@Service>> {
+        -recommendationTask: MaterialRecommendationTask
+        -explanationTask: MaterialExplanationTask
+        -materialProxyClient: MaterialProxyClient
+        -recommendationRepository: MaterialRecommendationRepository
+        -explanationRepository: AIExplanationRepository
+        --
+        +recommend(request: AIMaterialRequest): AIResponse
+        +explain(request: AIExplainRequest): AIResponse
+        +getExplainHistory(studentId: Long, materialId: Long): List<AIExplainResponseDTO>
+        -getPreviousExplanations(studentId: Long, materialId: Long): List<AIExplanation>
+        -fetchMaterialContent(materialId: Long): MaterialContentResponseDTO
+        -saveExplanationToDatabase(...): void
+        -fetchChaptersByCourse(courseId: String): List<ChapterDTO>
+        -fetchMaterialsForChapters(chapters: List<ChapterDTO>): List<MaterialDTO>
+        -saveRecommendationRecord(request: AIMaterialRequest, response: AIResponse): void
+        -mapToDTO(explanation: AIExplanation): AIExplainResponseDTO
+    }
+    
+    class MaterialRecommendationTask <<@Component>> {
+        -{static} TASK_TYPE: String = "MATERIAL_RECOMMENDATION"
+        -llmClient: LLMClient
+        -buildPrompt: MaterialRecommendationBuildPrompt
+        --
+        +execute(request: AIMaterialRequest): AIResponse
+        +execute(request: AIMaterialRequest, chapters: List<ChapterDTO>, materials: List<MaterialDTO>): AIResponse
+        +getTaskType(): String
+    }
+    
+    class MaterialExplanationTask <<@Component>> {
+        -{static} TASK_TYPE: String = "MATERIAL_EXPLANATION"
+        -llmClient: LLMClient
+        -buildPrompt: MaterialExplanationBuildPrompt
+        --
+        +execute(request: AIExplainRequest): AIResponse
+        +execute(request: AIExplainRequest, previousQuestions: List<String>, ...): AIResponse
+        +getTaskType(): String
+    }
+}
+
+package "services.task" {
+    interface "AITask<T>" as AITask
+}
+
+package "services.prompt.impl" {
+    class MaterialRecommendationBuildPrompt
+    class MaterialExplanationBuildPrompt
+}
+
+package "llm" {
+    interface LLMClient
+}
+
+package "proxy" {
+    interface MaterialProxyClient
+}
+
+package "repository" {
+    interface MaterialRecommendationRepository
+    interface AIExplanationRepository
+}
+
+' Implementations
+MaterialServiceImpl ..|> IMaterialService
+MaterialRecommendationTask ..|> AITask
+MaterialExplanationTask ..|> AITask
+
+' Dependencies
+MaterialServiceImpl --> MaterialRecommendationTask : uses
+MaterialServiceImpl --> MaterialExplanationTask : uses
+MaterialServiceImpl --> MaterialProxyClient : uses
+MaterialServiceImpl --> MaterialRecommendationRepository : uses
+MaterialServiceImpl --> AIExplanationRepository : uses
+
+MaterialRecommendationTask --> LLMClient : uses
+MaterialRecommendationTask --> MaterialRecommendationBuildPrompt : uses
+
+MaterialExplanationTask --> LLMClient : uses
+MaterialExplanationTask --> MaterialExplanationBuildPrompt : uses
+
+note bottom of MaterialServiceImpl
+  Facade pattern - orchestrates
+  both recommendation and
+  explanation operations
+end note
+
+@enduml
+
+
+@startuml AI-Service-Prompt-Strategy
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+
+title Prompt Building - Strategy Pattern
+
+package "services.prompt" #Thistle {
+    interface "BuildPrompt<T>" as BuildPrompt {
+        +buildPrompt(context: T): String
+        +getPromptType(): PromptType
+    }
+    
+    enum PromptType {
+        FEEDBACK_GENERATION
+        HINT_GENERATION
+        MATERIAL_EXPLANATION
+        MATERIAL_RECOMMENDATION
+        --
+        -value: String
+        +getValue(): String
+    }
+}
+
+package "services.prompt.context" #LightYellow {
+    class FeedbackPromptContext {
+        -request: AIFeedbackRequest
+        -testContext: TestResponseDTO
+    }
+    
+    class HintPromptContext {
+        -request: AIHintRequest
+        -testContext: TestResponseDTO
+        -targetQuestion: QuestionDTO
+        -subject: String
+        -previousHints: List<String>
+        -materials: List<MaterialDTO>
+    }
+    
+    class MaterialExplanationPromptContext {
+        -studentQuestion: String
+        -materialContent: String
+        -fileName: String
+        -pages: String
+        -previousQuestions: List<String>
+        -previousExplanations: List<String>
+    }
+    
+    class MaterialRecommendationPromptContext {
+        -request: AIMaterialRequest
+        -chapters: List<ChapterDTO>
+        -materials: List<MaterialDTO>
+    }
+}
+
+package "services.prompt.impl" #LightGreen {
+    class TestFeedbackBuildPrompt <<@Component>> {
+        +buildPrompt(context: FeedbackPromptContext): String
+        +getPromptType(): PromptType
+    }
+    
+    class HintGenerationBuildPrompt <<@Component>> {
+        +buildPrompt(context: HintPromptContext): String
+        +getPromptType(): PromptType
+    }
+    
+    class MaterialExplanationBuildPrompt <<@Component>> {
+        +buildPrompt(context: MaterialExplanationPromptContext): String
+        +getPromptType(): PromptType
+    }
+    
+    class MaterialRecommendationBuildPrompt <<@Component>> {
+        +buildPrompt(context: MaterialRecommendationPromptContext): String
+        +getPromptType(): PromptType
+    }
+}
+
+' Implementations
+TestFeedbackBuildPrompt ..|> BuildPrompt : <<T = FeedbackPromptContext>>
+HintGenerationBuildPrompt ..|> BuildPrompt : <<T = HintPromptContext>>
+MaterialExplanationBuildPrompt ..|> BuildPrompt : <<T = MaterialExplanationPromptContext>>
+MaterialRecommendationBuildPrompt ..|> BuildPrompt : <<T = MaterialRecommendationPromptContext>>
+
+' Context usage
+TestFeedbackBuildPrompt ..> FeedbackPromptContext : uses
+HintGenerationBuildPrompt ..> HintPromptContext : uses
+MaterialExplanationBuildPrompt ..> MaterialExplanationPromptContext : uses
+MaterialRecommendationBuildPrompt ..> MaterialRecommendationPromptContext : uses
+
+' Returns
+TestFeedbackBuildPrompt ..> PromptType : returns
+HintGenerationBuildPrompt ..> PromptType : returns
+MaterialExplanationBuildPrompt ..> PromptType : returns
+MaterialRecommendationBuildPrompt ..> PromptType : returns
+
+note right of BuildPrompt
+  Strategy Pattern:
+  Each implementation provides
+  a different prompt building
+  strategy for different AI tasks
+end note
+
+@enduml
+
+
+@startuml AI-Service-Repository-Entity
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+
+title Repository & Entity Layer Class Diagram
+
+package "models" #Wheat {
+    class AIExplanation <<@Entity>> {
+        -id: Long
+        -studentId: Long
+        -materialId: Long
+        -studentQuestion: String
+        -explanation: String
+        -createdAt: LocalDateTime
+        --
+        #onCreate(): void
+    }
+    
+    class AIHint <<@Entity>> {
+        -id: Long
+        -studentId: Long
+        -questionId: Long
+        -hint: String
+        -createdAt: LocalDateTime
+        --
+        #onCreate(): void
+    }
+    
+    class FeedbackRecord <<@Entity>> {
+        -id: Long
+        -studentId: String
+        -courseId: String
+        -assessmentId: String
+        -feedbackText: String
+        -createdAt: LocalDateTime
+        --
+        #onCreate(): void
+    }
+    
+    class MaterialRecommendationRecord <<@Entity>> {
+        -id: Long
+        -studentId: String
+        -courseId: String
+        -chapterId: String
+        -recommendationText: String
+        -preferredDifficulty: String
+        -preferredType: String
+        -createdAt: LocalDateTime
+        --
+        #onCreate(): void
+    }
+    
+    class StudentProfile <<@Entity>> {
+        -studentId: String
+        -skillMasteryMap: Map<String, Double>
+        -weaknessAreas: List<String>
+        -recommendedLearningPath: List<String>
+    }
+}
+
+package "repository" #Lavender {
+    interface AIExplanationRepository <<@Repository>> {
+        +findByStudentIdAndMaterialIdOrderByCreatedAtAsc(studentId: Long, materialId: Long): List<AIExplanation>
+    }
+    
+    interface AIHintRepository <<@Repository>> {
+        +findByStudentIdAndQuestionIdOrderByCreatedAtAsc(studentId: Long, questionId: Long): List<AIHint>
+    }
+    
+    interface FeedbackHistoryRepository <<@Repository>> {
+        +findByStudentId(studentId: String): List<FeedbackRecord>
+        +findByStudentIdAndAssessmentId(studentId: String, assessmentId: String): Optional<FeedbackRecord>
+        +findByCourseId(courseId: String): List<FeedbackRecord>
+    }
+    
+    interface MaterialRecommendationRepository <<@Repository>> {
+        +findByStudentIdOrderByCreatedAtDesc(studentId: String): List<MaterialRecommendationRecord>
+        +findByStudentIdAndCourseIdOrderByCreatedAtDesc(studentId: String, courseId: String): List<MaterialRecommendationRecord>
+        +findFirstByStudentIdAndCourseIdOrderByCreatedAtDesc(studentId: String, courseId: String): Optional<MaterialRecommendationRecord>
+    }
+    
+    interface StudentProfileRepository <<@Repository>> {
+        +findByStudentId(studentId: String): Optional<StudentProfile>
+    }
+}
+
+interface "JpaRepository<T, ID>" as JpaRepository <<Spring Data>> {
+    +save(entity: T): T
+    +findById(id: ID): Optional<T>
+    +findAll(): List<T>
+    +delete(entity: T): void
+    +count(): long
+}
+
+' Repository extends JpaRepository
+AIExplanationRepository --|> JpaRepository : <<AIExplanation, Long>>
+AIHintRepository --|> JpaRepository : <<AIHint, Long>>
+FeedbackHistoryRepository --|> JpaRepository : <<FeedbackRecord, Long>>
+MaterialRecommendationRepository --|> JpaRepository : <<MaterialRecommendationRecord, Long>>
+StudentProfileRepository --|> JpaRepository : <<StudentProfile, String>>
+
+' Repository - Entity relationships
+AIExplanationRepository ..> AIExplanation : manages
+AIHintRepository ..> AIHint : manages
+FeedbackHistoryRepository ..> FeedbackRecord : manages
+MaterialRecommendationRepository ..> MaterialRecommendationRecord : manages
+StudentProfileRepository ..> StudentProfile : manages
+
+note bottom of JpaRepository
+  Spring Data JPA
+  provides basic CRUD
+  operations automatically
+end note
+
+@enduml
+
+
+@startuml AI-Service-LLM-Integration
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+
+title LLM Integration Layer Class Diagram
+
+package "llm" #LightCyan {
+    interface LLMClient {
+        +chat(prompt: String): String
+        +chat(systemMessage: String, prompt: String): String
+    }
+    
+    class OpenAIClientImpl <<@Component>> {
+        -chatClient: ChatClient
+        -apiKey: String
+        --
+        +chat(prompt: String): String
+        +chat(systemMessage: String, userPrompt: String): String
+        -generateMockResponse(prompt: String): String
+    }
+    
+    class OpenAIModels {
+        ' Inner classes container
+    }
+    
+    class "OpenAIModels.ChatCompletionRequest" as ChatCompletionRequest {
+        -model: String
+        -messages: List<Message>
+        -temperature: Double
+        -maxTokens: Integer
+    }
+    
+    class "OpenAIModels.Message" as Message {
+        -role: String
+        -content: String
+        --
+        +{static} system(content: String): Message
+        +{static} user(content: String): Message
+        +{static} assistant(content: String): Message
+    }
+    
+    class "OpenAIModels.ChatCompletionResponse" as ChatCompletionResponse {
+        -id: String
+        -object: String
+        -created: Long
+        -model: String
+        -choices: List<Choice>
+        -usage: Usage
+    }
+    
+    class "OpenAIModels.Choice" as Choice {
+        -index: Integer
+        -message: Message
+        -finishReason: String
+    }
+    
+    class "OpenAIModels.Usage" as Usage {
+        -promptTokens: Integer
+        -completionTokens: Integer
+        -totalTokens: Integer
+    }
+}
+
+package "Spring AI" <<External>> {
+    interface ChatClient {
+        +prompt(): ChatClientPromptSpec
+    }
+    
+    interface ChatModel {
+    }
+}
+
+' Implementation relationship
+OpenAIClientImpl ..|> LLMClient
+
+' Spring AI usage
+OpenAIClientImpl --> ChatClient : uses
+OpenAIClientImpl ..> ChatModel : injected via constructor
+
+' Inner classes
+OpenAIModels +-- ChatCompletionRequest
+OpenAIModels +-- Message
+OpenAIModels +-- ChatCompletionResponse
+OpenAIModels +-- Choice
+OpenAIModels +-- Usage
+
+' Response structure
+ChatCompletionResponse --> Choice : contains
+ChatCompletionResponse --> Usage : contains
+Choice --> Message : contains
+ChatCompletionRequest --> Message : contains
+
+note right of LLMClient
+  Dependency Inversion Principle:
+  High-level modules depend on
+  this abstraction, allowing easy
+  swapping of LLM providers
+end note
+
+note bottom of OpenAIClientImpl
+  Uses Spring AI ChatClient
+  for OpenAI integration.
+  Falls back to mock response
+  when API key is not configured.
+end note
+
+@enduml
+
+
+@startuml AI-Service-Proxy-External
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+
+title External Service Proxy Layer Class Diagram
+
+package "proxy" #LightGray {
+    interface TestProxyClient <<@FeignClient>> {
+        +getTestByStudentAndCourse(courseId: String, testId: String, studentId: String): TestResponseDTO
+        +getTestByCourseAndAssessment(courseId: String, assessmentId: String): TestResponseDTO
+        +getCourse(courseId: String): ResponseObject<List<CourseDTO>>
+        +getCourseChapters(courseId: String): ResponseObject<List<ChapterDTO>>
+    }
+    
+    interface MaterialProxyClient <<@FeignClient>> {
+        +getChaptersByCourse(courseId: String): MaterialApiResponse<List<ChapterDTO>>
+        +getMaterialsByChapter(chapterId: String): MaterialApiResponse<List<MaterialDTO>>
+        +getChapterContent(courseId: String, chapterId: String): ResponseObject<ChapterContentResponseDTO>
+        +getMaterialContent(materialId: Long): ResponseObject<MaterialContentResponseDTO>
+    }
+}
+
+cloud "External Services" {
+    component "Test/Course Service" as TestService {
+        [Course API]
+        [Test API]
+        [Chapter API]
+    }
+    
+    component "Material Service" as MaterialService {
+        [Material API]
+        [Chapter Materials API]
+    }
+}
+
+TestProxyClient --> TestService : HTTP REST
+MaterialProxyClient --> MaterialService : HTTP REST
+
+note right of TestProxyClient
+  OpenFeign Client
+  name = "test-service"
+  url = ${proxy.test-service.url}
+  
+  Abstracts external API calls
+  following DIP principle
+end note
+
+note right of MaterialProxyClient
+  OpenFeign Client
+  name = "material-service"
+  url = ${proxy.test-service.url}
+  
+  Fetches course materials
+  and chapter content
+end note
+
+@enduml
+
+
+@startuml AI-Service-Exceptions
+!theme plain
+skinparam classAttributeIconSize 0
+
+title Exception Handling Class Diagram
+
+package "exceptions" #Pink {
+    class AIServiceException {
+        +AIServiceException(message: String)
+        +AIServiceException(message: String, cause: Throwable)
+    }
+    
+    class ResourceNotFoundException {
+        +ResourceNotFoundException(message: String)
+        +ResourceNotFoundException(resourceType: String, identifier: String)
+    }
+    
+    class GlobalExceptionHandler <<@RestControllerAdvice>> {
+        +handleValidationExceptions(ex: MethodArgumentNotValidException): ResponseEntity<ResponseObject<Map<String, String>>>
+        +handleResourceNotFoundException(ex: ResourceNotFoundException): ResponseEntity<ResponseObject<Void>>
+        +handleAIServiceException(ex: AIServiceException): ResponseEntity<ResponseObject<Void>>
+        +handleGenericException(ex: Exception): ResponseEntity<ResponseObject<Void>>
+    }
+}
+
+package "java.lang" <<External>> {
+    abstract class RuntimeException
+    abstract class Exception
+}
+
+AIServiceException --|> RuntimeException
+ResourceNotFoundException --|> RuntimeException
+
+GlobalExceptionHandler ..> AIServiceException : handles (503)
+GlobalExceptionHandler ..> ResourceNotFoundException : handles (404)
+GlobalExceptionHandler ..> Exception : handles (500)
+
+note right of GlobalExceptionHandler
+  Central exception handling
+  for all REST controllers.
+  
+  Maps exceptions to appropriate
+  HTTP status codes and
+  ResponseObject format.
+end note
+
+note bottom of AIServiceException
+  Thrown when AI/LLM
+  operations fail
+end note
+
+note bottom of ResourceNotFoundException
+  Thrown when requested
+  resource is not found
+end note
+
+@enduml
+
+
+@startuml AI-Service-DataProviders
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 10
+
+title Data Provider Layer Class Diagram (SOLID Compliance)
+
+package "services.dataprovider" #LightYellow {
+    interface CourseDataProvider <<ISP>> {
+        +getCourseName(courseId: String): String
+        +getChapters(courseId: String): List<ChapterDTO>
+        +getMaterialChapters(courseId: String): List<ChapterDTO>
+        +getCourseMaterials(courseId: String): List<MaterialDTO>
+        +getMaterialsForChapters(chapters: List<ChapterDTO>): List<MaterialDTO>
+        +getMaterialContent(materialId: Long): MaterialContentResponseDTO
+    }
+    
+    interface TestDataProvider <<ISP>> {
+        +getTestContext(courseId: String, assessmentId: String): TestResponseDTO
+        +getTestContextForStudent(courseId: String, assessmentId: String, studentId: String): TestResponseDTO
+        +findQuestion(testContext: TestResponseDTO, questionId: Long): Optional<QuestionDTO>
+    }
+    
+    interface HintDataProvider <<ISP>> {
+        +getPreviousHintTexts(studentId: Long, questionId: Long): List<String>
+        +getPreviousHints(studentId: Long, questionId: Long): List<AIHint>
+        +saveHint(studentId: Long, questionId: Long, hintText: String): AIHint
+        +getHintHistoryDTOs(studentId: Long, questionId: Long): List<HintResponseDTO>
+        +getHintHistory(studentId: Long, questionId: Long): List<AIHint>
+    }
+    
+    interface ExplanationDataProvider <<ISP>> {
+        +getPreviousExplanations(studentId: Long, materialId: Long): List<AIExplanation>
+        +extractQuestions(explanations: List<AIExplanation>): List<String>
+        +extractAnswers(explanations: List<AIExplanation>): List<String>
+        +saveExplanation(studentId: Long, materialId: Long, question: String, explanation: String): AIExplanation
+        +getExplanationHistory(studentId: Long, materialId: Long): List<AIExplanation>
+        +getExplanationHistoryDTOs(studentId: Long, materialId: Long): List<AIExplainResponseDTO>
+    }
+    
+    interface RecommendationDataProvider <<ISP>> {
+        +saveRecommendation(request: AIMaterialRequest, response: AIResponse): MaterialRecommendationRecord
+        +getRecommendationHistory(studentId: Long, courseId: String): List<MaterialRecommendationRecord>
+    }
+    
+    interface FeedbackDataProvider <<ISP>> {
+        +saveFeedback(studentId: String, courseId: String, assessmentId: String, feedbackText: String): FeedbackRecord
+        +getFeedbackHistory(studentId: String): List<FeedbackRecord>
+        +getFeedbackByAssessment(studentId: String, assessmentId: String): Optional<FeedbackRecord>
+    }
+}
+
+package "services.dataprovider.impl" #LightGreen {
+    class CourseDataProviderImpl <<@Component>> {
+        -testProxyClient: TestProxyClient
+        -materialProxyClient: MaterialProxyClient
+        --
+        ..implements CourseDataProvider methods..
+    }
+    
+    class TestDataProviderImpl <<@Component>> {
+        -testProxyClient: TestProxyClient
+        --
+        ..implements TestDataProvider methods..
+    }
+    
+    class HintDataProviderImpl <<@Component>> {
+        -hintRepository: AIHintRepository
+        --
+        ..implements HintDataProvider methods..
+    }
+    
+    class ExplanationDataProviderImpl <<@Component>> {
+        -explanationRepository: AIExplanationRepository
+        --
+        ..implements ExplanationDataProvider methods..
+    }
+    
+    class RecommendationDataProviderImpl <<@Component>> {
+        -recommendationRepository: MaterialRecommendationRepository
+        --
+        ..implements RecommendationDataProvider methods..
+    }
+    
+    class FeedbackDataProviderImpl <<@Component>> {
+        -feedbackHistoryService: ITestFeedbackHistoryService
+        --
+        ..implements FeedbackDataProvider methods..
+    }
+}
+
+' Implementations
+CourseDataProviderImpl ..|> CourseDataProvider : <<DIP>>
+TestDataProviderImpl ..|> TestDataProvider : <<DIP>>
+HintDataProviderImpl ..|> HintDataProvider : <<DIP>>
+ExplanationDataProviderImpl ..|> ExplanationDataProvider : <<DIP>>
+RecommendationDataProviderImpl ..|> RecommendationDataProvider : <<DIP>>
+FeedbackDataProviderImpl ..|> FeedbackDataProvider : <<DIP>>
+
+package "proxy" <<External>> {
+    [TestProxyClient]
+    [MaterialProxyClient]
+}
+
+package "repository" <<External>> {
+    [AIHintRepository]
+    [AIExplanationRepository]
+    [MaterialRecommendationRepository]
+}
+
+package "services.feedback" <<External>> {
+    [ITestFeedbackHistoryService]
+}
+
+' Dependencies
+CourseDataProviderImpl --> [TestProxyClient]
+CourseDataProviderImpl --> [MaterialProxyClient]
+TestDataProviderImpl --> [TestProxyClient]
+HintDataProviderImpl --> [AIHintRepository]
+ExplanationDataProviderImpl --> [AIExplanationRepository]
+RecommendationDataProviderImpl --> [MaterialRecommendationRepository]
+FeedbackDataProviderImpl --> [ITestFeedbackHistoryService]
+
+note right of CourseDataProvider
+  **SOLID Principles Applied:**
+  
+  **SRP**: Each interface has a single
+  responsibility (course data, test data, etc.)
+  
+  **ISP**: Clients depend only on methods
+  they actually use
+  
+  **DIP**: High-level services depend on
+  these abstractions, not concrete classes
+end note
+
+note bottom of CourseDataProviderImpl
+  Centralizes all external API calls
+  for course/material data
+end note
+
+note bottom of HintDataProviderImpl
+  Centralizes all hint-related
+  database operations
+end note
+
+@enduml
+
+
+@startuml AI-Service-Refactored-Services
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 10
+
+title Refactored Service Layer with DataProviders
+
+package "services.hint" #LightBlue {
+    interface HintService {
+        +hint(request: AIHintRequest): AIResponse
+        +getHintHistory(studentId: Long, questionId: Long): List<HintResponseDTO>
+    }
+    
+    class HintServiceImpl <<@Service, Refactored>> {
+        -hintGenerationTask: HintGenerationTask
+        -hintDataProvider: HintDataProvider
+        -testDataProvider: TestDataProvider
+        -courseDataProvider: CourseDataProvider
+        --
+        +hint(request: AIHintRequest): AIResponse
+        +getHintHistory(studentId: Long, questionId: Long): List<HintResponseDTO>
+    }
+}
+
+package "services.feedback" #LightPink {
+    interface ITestFeedbackService {
+        +feedback(request: AIFeedbackRequest): AIResponse
+        +getHistory(studentId: String): List<FeedbackRecord>
+        +getByAssessment(studentId: String, assessmentId: String): Optional<FeedbackRecord>
+    }
+    
+    class TestFeedbackServiceImpl <<@Service, Refactored>> {
+        -testFeedbackGenerationTask: TestFeedbackGenerationTask
+        -testDataProvider: TestDataProvider
+        -feedbackDataProvider: FeedbackDataProvider
+        --
+        +feedback(request: AIFeedbackRequest): AIResponse
+        +getHistory(studentId: String): List<FeedbackRecord>
+        +getByAssessment(studentId: String, assessmentId: String): Optional<FeedbackRecord>
+    }
+}
+
+package "services.material" #LightCyan {
+    interface IMaterialService {
+        +recommend(request: AIMaterialRequest): AIResponse
+        +explain(request: AIExplainRequest): AIResponse
+        +getExplainHistory(studentId: Long, materialId: Long): List<AIExplainResponseDTO>
+    }
+    
+    class MaterialServiceImpl <<@Service, Refactored>> {
+        -recommendationTask: MaterialRecommendationTask
+        -explanationTask: MaterialExplanationTask
+        -courseDataProvider: CourseDataProvider
+        -explanationDataProvider: ExplanationDataProvider
+        -recommendationDataProvider: RecommendationDataProvider
+        --
+        +recommend(request: AIMaterialRequest): AIResponse
+        +explain(request: AIExplainRequest): AIResponse
+        +getExplainHistory(studentId: Long, materialId: Long): List<AIExplainResponseDTO>
+    }
+}
+
+package "services.dataprovider" #LightYellow {
+    interface CourseDataProvider
+    interface TestDataProvider
+    interface HintDataProvider
+    interface ExplanationDataProvider
+    interface RecommendationDataProvider
+    interface FeedbackDataProvider
+}
+
+package "services.task" #Wheat {
+    [TestFeedbackGenerationTask]
+    [HintGenerationTask]
+    [MaterialRecommendationTask]
+    [MaterialExplanationTask]
+}
+
+' Relationships
+HintServiceImpl ..|> HintService
+MaterialServiceImpl ..|> IMaterialService
+TestFeedbackServiceImpl ..|> ITestFeedbackService
+
+TestFeedbackServiceImpl --> TestFeedbackGenerationTask : uses
+TestFeedbackServiceImpl --> TestDataProvider : <<DIP>>
+TestFeedbackServiceImpl --> FeedbackDataProvider : <<DIP>>
+
+HintServiceImpl --> HintGenerationTask : uses
+HintServiceImpl --> CourseDataProvider : <<DIP>>
+HintServiceImpl --> TestDataProvider : <<DIP>>
+HintServiceImpl --> HintDataProvider : <<DIP>>
+
+MaterialServiceImpl --> MaterialRecommendationTask : uses
+MaterialServiceImpl --> MaterialExplanationTask : uses
+MaterialServiceImpl --> CourseDataProvider : <<DIP>>
+MaterialServiceImpl --> ExplanationDataProvider : <<DIP>>
+MaterialServiceImpl --> RecommendationDataProvider : <<DIP>>
+
+note top of TestFeedbackServiceImpl
+  **Before Refactoring:**
+  - Direct dependencies on proxy clients & history service
+  - Mixed concerns (data fetching + orchestration)
+  
+  **After Refactoring:**
+  - Depends on DataProvider abstractions
+  - Follows SRP, DIP, ISP
+end note
+
+note top of HintServiceImpl
+  **Before Refactoring:**
+  - 7+ private helper methods
+  - Direct dependencies on repositories & proxy clients
+  - Violated SRP
+  
+  **After Refactoring:**
+  - No private helper methods for data fetching
+  - Depends on DataProvider abstractions
+  - Follows SRP, DIP, ISP
+end note
+
+note top of MaterialServiceImpl
+  **Before Refactoring:**
+  - 8+ private helper methods
+  - Direct dependencies on repositories & proxy clients
+  - Violated SRP
+  
+  **After Refactoring:**
+  - No private helper methods for data fetching
+  - Depends on DataProvider abstractions
+  - Follows SRP, DIP, ISP
+end note
+
+@enduml
