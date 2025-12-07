@@ -1,6 +1,5 @@
 package com.example.demo.services.dataprovider;
 
-import com.example.demo.dto.AIExplainResponseDTO;
 import com.example.demo.models.AIExplanation;
 
 import java.util.List;
@@ -56,13 +55,4 @@ public interface ExplanationDataProvider {
      * @return list of explanation entities
      */
     List<AIExplanation> getExplanationHistory(Long studentId, Long materialId);
-
-    /**
-     * Get explanation history as DTOs.
-     *
-     * @param studentId  the student identifier
-     * @param materialId the material identifier
-     * @return list of explanation response DTOs
-     */
-    List<AIExplainResponseDTO> getExplanationHistoryDTOs(Long studentId, Long materialId);
 }

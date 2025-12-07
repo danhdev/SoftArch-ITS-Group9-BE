@@ -2,7 +2,6 @@ package com.example.demo.services.material;
 
 import java.util.List;
 
-import com.example.demo.dto.AIExplainResponseDTO;
 import com.example.demo.dto.MaterialContentResponseDTO;
 import com.example.demo.dto.request.AIExplainRequest;
 import com.example.demo.models.AIExplanation;
@@ -18,9 +17,6 @@ import com.example.demo.services.dataprovider.RecommendationDataProvider;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import java.time.format.DateTimeFormatter;
-import java.util.stream.Collectors;
 
 /**
  * Implementation of MaterialService.
@@ -41,8 +37,6 @@ public class MaterialServiceImpl implements IMaterialService {
     private final CourseDataProvider courseDataProvider;
     private final ExplanationDataProvider explanationDataProvider;
     private final RecommendationDataProvider recommendationDataProvider;
-
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Override
     public AIResponse recommend(AIMaterialRequest request) {
@@ -104,31 +98,15 @@ public class MaterialServiceImpl implements IMaterialService {
     }
 
     @Override
-    public List<AIExplainResponseDTO> getExplainHistory(Long studentId, Long materialId) {
+    public List<AIExplanation> getExplainHistory(Long studentId, Long materialId) {
         log.info("Fetching explanation history for student: {}, material: {}", studentId, materialId);
 
         // Delegate data fetching to ExplanationDataProvider (SRP compliance)
         List<AIExplanation> explanations = explanationDataProvider.getExplanationHistory(studentId, materialId);
 
-        List<AIExplainResponseDTO> historyDTOs = explanations.stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
-
         log.info("Found {} explanations for student: {}, material: {}",
-                historyDTOs.size(), studentId, materialId);
+                explanations.size(), studentId, materialId);
 
-        return historyDTOs;
-    }
-
-    private AIExplainResponseDTO mapToDTO(AIExplanation explanation) {
-        return AIExplainResponseDTO.builder()
-                .explanationId(explanation.getId())
-                .studentId(explanation.getStudentId())
-                .materialId(explanation.getMaterialId())
-                .studentQuestion(explanation.getStudentQuestion())
-                .explanation(explanation.getExplanation())
-                .createdAt(explanation.getCreatedAt() != null ?
-                        explanation.getCreatedAt().format(DATE_FORMATTER) : null)
-                .build();
+        return explanations;
     }
 }

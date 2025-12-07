@@ -1,6 +1,5 @@
 package com.example.demo.services.dataprovider;
 
-import com.example.demo.dto.HintResponseDTO;
 import com.example.demo.models.AIHint;
 
 import java.util.List;
@@ -39,15 +38,6 @@ public interface HintDataProvider {
      * @return the saved hint entity or null if save failed
      */
     AIHint saveHint(Long studentId, Long questionId, String hintText);
-
-    /**
-     * Get hint history as DTOs.
-     *
-     * @param studentId  the student identifier
-     * @param questionId the question identifier
-     * @return list of hint response DTOs
-     */
-    List<HintResponseDTO> getHintHistoryDTOs(Long studentId, Long questionId);
 
     /**
      * Get hint history as entities.

@@ -2,7 +2,7 @@ package com.example.demo.services.hint;
 
 import com.example.demo.dto.request.AIHintRequest;
 import com.example.demo.dto.AIResponse;
-import com.example.demo.dto.HintResponseDTO;
+import com.example.demo.models.AIHint;
 
 import java.util.List;
 
@@ -25,7 +25,7 @@ public interface HintService {
      *
      * @param studentId the student identifier
      * @param questionId the question identifier
-     * @return list of hints ordered by creation time
+     * @return list of hint entities ordered by creation time
      */
-    List<HintResponseDTO> getHintHistory(Long studentId, Long questionId);
+    List<AIHint> getHintHistory(Long studentId, Long questionId);
 }

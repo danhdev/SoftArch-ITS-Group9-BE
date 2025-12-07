@@ -11,9 +11,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.dto.request.AIFeedbackRequest;
-import com.example.demo.dto.AIResponse;
+import com.example.demo.dto.response.AIGenerationResponseDTO;
+import com.example.demo.dto.response.FeedbackResponseDTO;
 import com.example.demo.dto.ResponseObject;
-import com.example.demo.models.FeedbackRecord;
+import com.example.demo.mapper.FeedbackResponseMapper;
 import com.example.demo.services.feedback.ITestFeedbackService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,6 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 public class FeedbackController {
 
     private final ITestFeedbackService feedbackService;
+    private final FeedbackResponseMapper responseMapper;
 
     /**
      * Generate feedback for a student submission.
@@ -46,14 +48,15 @@ public class FeedbackController {
     @PostMapping("generate")
     @Operation(summary = "Generate feedback",
                description = "Generates comprehensive AI-powered feedback for a student submission")
-    public ResponseEntity<ResponseObject<AIResponse>> generateFeedback(
+    public ResponseEntity<ResponseObject<AIGenerationResponseDTO>> generateFeedback(
             @Valid @RequestBody AIFeedbackRequest request) {
         log.info("Received feedback generation request for course: {}, assessment: {}, student: {}",
                 request.getCourseId(), request.getAssessmentId(), request.getStudentId());
         
-        AIResponse response = feedbackService.feedback(request);
+        var response = feedbackService.feedback(request);
+        var responseDTO = responseMapper.toGenerationResponse(response);
         
-        return ResponseEntity.ok(ResponseObject.success("Feedback generated successfully", response));
+        return ResponseEntity.ok(ResponseObject.success("Feedback generated successfully", responseDTO));
     }
 
     /**
@@ -65,14 +68,15 @@ public class FeedbackController {
     @GetMapping("/history/{studentId}")
     @Operation(summary = "Get feedback history",
                description = "Retrieves all feedback records for a specific student")
-    public ResponseEntity<ResponseObject<List<FeedbackRecord>>> history(
+    public ResponseEntity<ResponseObject<List<FeedbackResponseDTO>>> history(
             @Parameter(description = "Student's unique identifier")
             @PathVariable String studentId) {
         log.info("Received request for feedback history of student: {}", studentId);
         
-        List<FeedbackRecord> history = feedbackService.getHistory(studentId);
+        var history = feedbackService.getHistory(studentId);
+        var historyDTOs = responseMapper.toResponseDTOList(history);
         
-        return ResponseEntity.ok(ResponseObject.success("Feedback history retrieved successfully", history));
+        return ResponseEntity.ok(ResponseObject.success("Feedback history retrieved successfully", historyDTOs));
     }
 
     /**
@@ -85,7 +89,7 @@ public class FeedbackController {
     @GetMapping("/student/{studentId}/assessment/{assessmentId}")
     @Operation(summary = "Get feedback by assessment",
                description = "Retrieves feedback for a specific student and assessment combination")
-    public ResponseEntity<ResponseObject<FeedbackRecord>> byAssessment(
+    public ResponseEntity<ResponseObject<FeedbackResponseDTO>> byAssessment(
             @Parameter(description = "Student's unique identifier")
             @PathVariable String studentId,
             @Parameter(description = "Assessment's unique identifier")
@@ -93,7 +97,8 @@ public class FeedbackController {
         log.info("Received request for feedback of student: {}, assessment: {}", studentId, assessmentId);
         
         return feedbackService.getByAssessment(studentId, assessmentId)
-                .map(record -> ResponseEntity.ok(ResponseObject.success("Feedback retrieved successfully", record)))
+                .map(record -> ResponseEntity.ok(ResponseObject.success("Feedback retrieved successfully", 
+                        responseMapper.toResponseDTO(record))))
                 .orElse(ResponseEntity.ok(ResponseObject.error(404, "Feedback not found")));
     }
 }

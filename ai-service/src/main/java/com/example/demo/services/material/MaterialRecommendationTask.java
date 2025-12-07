@@ -85,8 +85,7 @@ public class MaterialRecommendationTask implements AITask<AIMaterialRequest> {
                         "promptType", buildPrompt.getPromptType().getValue(),
                         "studentId", request.getStudentId() != null ? request.getStudentId() : "unknown",
                         "courseId", request.getCourseId() != null ? request.getCourseId() : "unknown",
-                        "chaptersCount", chapters != null ? chapters.size() : 0,
-                        "materialsCount", materials != null ? materials.size() : 0
+                        "chaptersCount", chapters != null ? chapters.size() : 0
                 ))
                 .build();
     }

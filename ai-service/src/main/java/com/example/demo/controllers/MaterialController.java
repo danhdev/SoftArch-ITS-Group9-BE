@@ -1,13 +1,13 @@
 package com.example.demo.controllers;
 
-import com.example.demo.dto.AIExplainResponseDTO;
+import com.example.demo.dto.response.AIGenerationResponseDTO;
+import com.example.demo.dto.response.ExplanationResponseDTO;
 import com.example.demo.dto.request.AIExplainRequest;
+import com.example.demo.mapper.MaterialResponseMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.demo.dto.request.AIMaterialRequest;
-import com.example.demo.dto.request.AIFeedbackRequest;
-import com.example.demo.dto.AIResponse;
 import com.example.demo.dto.ResponseObject;
 import com.example.demo.services.material.IMaterialService;
 
@@ -33,6 +33,7 @@ import java.util.List;
 public class MaterialController {
 
     private final IMaterialService materialService;
+    private final MaterialResponseMapper responseMapper;
 
     /**
      * Recommend learning materials based on student context and course materials.
@@ -43,13 +44,14 @@ public class MaterialController {
     @PostMapping("/recommend")
     @Operation(summary = "Recommend learning materials",
                description = "Generates personalized learning material recommendations based on student context, course materials, and student preferences")
-    public ResponseEntity<ResponseObject<AIResponse>> recommend(@Valid @RequestBody AIMaterialRequest request) {
+    public ResponseEntity<ResponseObject<AIGenerationResponseDTO>> recommend(@Valid @RequestBody AIMaterialRequest request) {
         log.info("Received material recommendation request for student: {}, course: {}", 
                 request.getStudentId(), request.getCourseId());
         
-        AIResponse response = materialService.recommend(request);
+        var response = materialService.recommend(request);
+        var responseDTO = responseMapper.toGenerationResponse(response);
         
-        return ResponseEntity.ok(ResponseObject.success("Material recommendations generated successfully", response));
+        return ResponseEntity.ok(ResponseObject.success("Material recommendations generated successfully", responseDTO));
     }
 
     /**
@@ -61,12 +63,13 @@ public class MaterialController {
     @PostMapping("/explain")
     @Operation(summary = "Explain a topic",
                description = "Provides a detailed explanation of a topic or concept suitable for student learning")
-    public ResponseEntity<ResponseObject<AIResponse>> explain(@Valid @RequestBody AIExplainRequest request) {
+    public ResponseEntity<ResponseObject<AIGenerationResponseDTO>> explain(@Valid @RequestBody AIExplainRequest request) {
         log.info("Received material explanation request");
         
-        AIResponse response = materialService.explain(request);
+        var response = materialService.explain(request);
+        var responseDTO = responseMapper.toGenerationResponse(response);
         
-        return ResponseEntity.ok(ResponseObject.success("Explanation generated successfully", response));
+        return ResponseEntity.ok(ResponseObject.success("Explanation generated successfully", responseDTO));
     }
 
     /**
@@ -79,7 +82,7 @@ public class MaterialController {
     @GetMapping("/explain/history")
     @Operation(summary = "Get explanation history",
                description = "Retrieves all explanations generated for a specific student and material, ordered by creation time")
-    public ResponseEntity<ResponseObject<List<AIExplainResponseDTO>>> getExplainHistory(
+    public ResponseEntity<ResponseObject<List<ExplanationResponseDTO>>> getExplainHistory(
             @Parameter(description = "ID of the student", example = "1", required = true)
             @RequestParam Long studentId,
             @Parameter(description = "ID of the material", example = "5", required = true)
@@ -87,8 +90,9 @@ public class MaterialController {
 
         log.info("Retrieving explanation history for student: {}, material: {}", studentId, materialId);
 
-        List<AIExplainResponseDTO> history = materialService.getExplainHistory(studentId, materialId);
+        var explanations = materialService.getExplainHistory(studentId, materialId);
+        var historyDTOs = responseMapper.toExplanationResponseDTOList(explanations);
 
-        return ResponseEntity.ok(ResponseObject.success("Explanation history retrieved successfully", history));
+        return ResponseEntity.ok(ResponseObject.success("Explanation history retrieved successfully", historyDTOs));
     }
 }

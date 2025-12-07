@@ -12,8 +12,6 @@ import com.example.demo.services.dataprovider.TestDataProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -33,8 +31,6 @@ public class HintServiceImpl implements HintService {
     private final HintDataProvider hintDataProvider;
     private final TestDataProvider testDataProvider;
     private final CourseDataProvider courseDataProvider;
-
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Override
     public AIResponse hint(AIHintRequest request) {
@@ -75,28 +71,14 @@ public class HintServiceImpl implements HintService {
     }
 
     @Override
-    public List<HintResponseDTO> getHintHistory(Long studentId, Long questionId) {
+    public List<AIHint> getHintHistory(Long studentId, Long questionId) {
         log.info("Fetching hint history for student: {}, question: {}", studentId, questionId);
 
         // Delegate data fetching to HintDataProvider (SRP compliance)
         List<AIHint> hints = hintDataProvider.getHintHistory(studentId, questionId);
-        List<HintResponseDTO> hintDTOs = new ArrayList<>();
 
-        for (int i = 0; i < hints.size(); i++) {
-            AIHint hint = hints.get(i);
-            HintResponseDTO dto = HintResponseDTO.builder()
-                    .hintId(hint.getId())
-                    .questionId(hint.getQuestionId())
-                    .studentId(hint.getStudentId())
-                    .hint(hint.getHint())
-                    .hintCount(i + 1)
-                    .createdAt(hint.getCreatedAt() != null ? hint.getCreatedAt().format(DATE_FORMATTER) : null)
-                    .build();
-            hintDTOs.add(dto);
-        }
+        log.info("Found {} hints for student: {}, question: {}", hints.size(), studentId, questionId);
 
-        log.info("Found {} hints for student: {}, question: {}", hintDTOs.size(), studentId, questionId);
-
-        return hintDTOs;
+        return hints;
     }
 }

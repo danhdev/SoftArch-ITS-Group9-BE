@@ -4,9 +4,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.demo.dto.request.AIHintRequest;
-import com.example.demo.dto.AIResponse;
-import com.example.demo.dto.HintResponseDTO;
+import com.example.demo.dto.response.AIGenerationResponseDTO;
+import com.example.demo.dto.response.HintResponseDTO;
 import com.example.demo.dto.ResponseObject;
+import com.example.demo.mapper.HintResponseMapper;
 import com.example.demo.services.hint.HintService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,6 +32,7 @@ import java.util.List;
 public class HintController {
 
     private final HintService hintService;
+    private final HintResponseMapper responseMapper;
 
     /**
      * Generate a hint for a problem/question.
@@ -41,13 +43,14 @@ public class HintController {
     @PostMapping("/generate")
     @Operation(summary = "Generate a hint",
                description = "Generates a helpful hint for a specific question without revealing the complete answer")
-    public ResponseEntity<ResponseObject<AIResponse>> generateHint(@Valid @RequestBody AIHintRequest request) {
+    public ResponseEntity<ResponseObject<AIGenerationResponseDTO>> generateHint(@Valid @RequestBody AIHintRequest request) {
         log.info("Received hint generation request for student: {}, course: {}, assessment: {}, question: {}",
                 request.getStudentId(), request.getCourseId(), request.getAssessmentId(), request.getQuestionId());
 
-        AIResponse response = hintService.hint(request);
+        var response = hintService.hint(request);
+        var responseDTO = responseMapper.toGenerationResponse(response);
         
-        return ResponseEntity.ok(ResponseObject.success("Hint generated successfully", response));
+        return ResponseEntity.ok(ResponseObject.success("Hint generated successfully", responseDTO));
     }
 
     /**
@@ -68,8 +71,9 @@ public class HintController {
 
         log.info("Retrieving hint history for student: {}, question: {}", studentId, questionId);
 
-        List<HintResponseDTO> history = hintService.getHintHistory(studentId, questionId);
+        var hints = hintService.getHintHistory(studentId, questionId);
+        var historyDTOs = responseMapper.toResponseDTOList(hints);
 
-        return ResponseEntity.ok(ResponseObject.success("Hint history retrieved successfully", history));
+        return ResponseEntity.ok(ResponseObject.success("Hint history retrieved successfully", historyDTOs));
     }
 }

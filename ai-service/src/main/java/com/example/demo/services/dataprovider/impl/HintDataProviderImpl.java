@@ -1,6 +1,5 @@
 package com.example.demo.services.dataprovider.impl;
 
-import com.example.demo.dto.HintResponseDTO;
 import com.example.demo.models.AIHint;
 import com.example.demo.repository.AIHintRepository;
 import com.example.demo.services.dataprovider.HintDataProvider;
@@ -9,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,8 +20,6 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class HintDataProviderImpl implements HintDataProvider {
-
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final AIHintRepository hintRepository;
 
@@ -75,30 +71,6 @@ public class HintDataProviderImpl implements HintDataProvider {
                     studentId, questionId, e.getMessage(), e);
             return null;
         }
-    }
-
-    @Override
-    public List<HintResponseDTO> getHintHistoryDTOs(Long studentId, Long questionId) {
-        log.info("Fetching hint history DTOs for student: {}, question: {}", studentId, questionId);
-
-        List<AIHint> hints = getPreviousHints(studentId, questionId);
-        List<HintResponseDTO> hintDTOs = new ArrayList<>();
-
-        for (int i = 0; i < hints.size(); i++) {
-            AIHint hint = hints.get(i);
-            HintResponseDTO dto = HintResponseDTO.builder()
-                    .hintId(hint.getId())
-                    .questionId(hint.getQuestionId())
-                    .studentId(hint.getStudentId())
-                    .hint(hint.getHint())
-                    .hintCount(i + 1)
-                    .createdAt(hint.getCreatedAt() != null ? hint.getCreatedAt().format(DATE_FORMATTER) : null)
-                    .build();
-            hintDTOs.add(dto);
-        }
-
-        log.info("Found {} hints for student: {}, question: {}", hintDTOs.size(), studentId, questionId);
-        return hintDTOs;
     }
 
     @Override

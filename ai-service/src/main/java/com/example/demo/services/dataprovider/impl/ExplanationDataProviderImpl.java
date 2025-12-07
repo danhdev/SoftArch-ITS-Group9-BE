@@ -1,6 +1,5 @@
 package com.example.demo.services.dataprovider.impl;
 
-import com.example.demo.dto.AIExplainResponseDTO;
 import com.example.demo.models.AIExplanation;
 import com.example.demo.repository.AIExplanationRepository;
 import com.example.demo.services.dataprovider.ExplanationDataProvider;
@@ -9,10 +8,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Implementation of ExplanationDataProvider.
@@ -23,8 +20,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class ExplanationDataProviderImpl implements ExplanationDataProvider {
-
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final AIExplanationRepository explanationRepository;
 
@@ -90,31 +85,5 @@ public class ExplanationDataProviderImpl implements ExplanationDataProvider {
     @Override
     public List<AIExplanation> getExplanationHistory(Long studentId, Long materialId) {
         return getPreviousExplanations(studentId, materialId);
-    }
-
-    @Override
-    public List<AIExplainResponseDTO> getExplanationHistoryDTOs(Long studentId, Long materialId) {
-        log.info("Fetching explanation history DTOs for student: {}, material: {}", studentId, materialId);
-
-        List<AIExplanation> explanations = getPreviousExplanations(studentId, materialId);
-
-        List<AIExplainResponseDTO> historyDTOs = explanations.stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
-
-        log.info("Found {} explanations for student: {}, material: {}", historyDTOs.size(), studentId, materialId);
-        return historyDTOs;
-    }
-
-    private AIExplainResponseDTO mapToDTO(AIExplanation explanation) {
-        return AIExplainResponseDTO.builder()
-                .explanationId(explanation.getId())
-                .studentId(explanation.getStudentId())
-                .materialId(explanation.getMaterialId())
-                .studentQuestion(explanation.getStudentQuestion())
-                .explanation(explanation.getExplanation())
-                .createdAt(explanation.getCreatedAt() != null ?
-                        explanation.getCreatedAt().format(DATE_FORMATTER) : null)
-                .build();
     }
 }
