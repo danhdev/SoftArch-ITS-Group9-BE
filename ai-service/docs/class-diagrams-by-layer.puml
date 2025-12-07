@@ -35,6 +35,24 @@ package "Service Layer" #LightBlue {
     }
 }
 
+package "Data Provider Layer" #LightYellow {
+    package "Data Provider Interfaces" {
+        [CourseDataProvider]
+        [TestDataProvider]
+        [HintDataProvider]
+        [ExplanationDataProvider]
+        [RecommendationDataProvider]
+    }
+    
+    package "Data Provider Implementations" {
+        [CourseDataProviderImpl]
+        [TestDataProviderImpl]
+        [HintDataProviderImpl]
+        [ExplanationDataProviderImpl]
+        [RecommendationDataProviderImpl]
+    }
+}
+
 package "AI Task Layer" #Wheat {
     [TestFeedbackGenerationTask]
     [HintGenerationTask]
@@ -98,14 +116,29 @@ package "Domain Model" #MistyRose {
 [OpenAIClientImpl] ..|> [LLMClient]
 
 [TestFeedbackServiceImpl] --> [TestProxyClient]
-[HintServiceImpl] --> [TestProxyClient]
-[HintServiceImpl] --> [MaterialProxyClient]
-[MaterialServiceImpl] --> [MaterialProxyClient]
+[HintServiceImpl] --> [CourseDataProvider]
+[HintServiceImpl] --> [TestDataProvider]
+[HintServiceImpl] --> [HintDataProvider]
+[MaterialServiceImpl] --> [CourseDataProvider]
+[MaterialServiceImpl] --> [ExplanationDataProvider]
+[MaterialServiceImpl] --> [RecommendationDataProvider]
+
+' DataProvider implementations
+[CourseDataProviderImpl] ..|> [CourseDataProvider]
+[TestDataProviderImpl] ..|> [TestDataProvider]
+[HintDataProviderImpl] ..|> [HintDataProvider]
+[ExplanationDataProviderImpl] ..|> [ExplanationDataProvider]
+[RecommendationDataProviderImpl] ..|> [RecommendationDataProvider]
+
+' DataProviders to external services/repositories
+[CourseDataProviderImpl] --> [TestProxyClient]
+[CourseDataProviderImpl] --> [MaterialProxyClient]
+[TestDataProviderImpl] --> [TestProxyClient]
+[HintDataProviderImpl] --> [AIHintRepository]
+[ExplanationDataProviderImpl] --> [AIExplanationRepository]
+[RecommendationDataProviderImpl] --> [MaterialRecommendationRepository]
 
 [TestFeedbackHistoryServiceImpl] --> [FeedbackHistoryRepository]
-[HintServiceImpl] --> [AIHintRepository]
-[MaterialServiceImpl] --> [AIExplanationRepository]
-[MaterialServiceImpl] --> [MaterialRecommendationRepository]
 [StudentProfileServiceImpl] --> [StudentProfileRepository]
 
 @enduml
@@ -1095,6 +1128,237 @@ end note
 note bottom of ResourceNotFoundException
   Thrown when requested
   resource is not found
+end note
+
+@enduml
+
+
+@startuml AI-Service-DataProviders
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 10
+
+title Data Provider Layer Class Diagram (SOLID Compliance)
+
+package "services.dataprovider" #LightYellow {
+    interface CourseDataProvider <<ISP>> {
+        +getCourseName(courseId: String): String
+        +getChapters(courseId: String): List<ChapterDTO>
+        +getMaterialChapters(courseId: String): List<ChapterDTO>
+        +getCourseMaterials(courseId: String): List<MaterialDTO>
+        +getMaterialsForChapters(chapters: List<ChapterDTO>): List<MaterialDTO>
+        +getMaterialContent(materialId: Long): MaterialContentResponseDTO
+    }
+    
+    interface TestDataProvider <<ISP>> {
+        +getTestContext(courseId: String, assessmentId: String): TestResponseDTO
+        +getTestContextForStudent(courseId: String, assessmentId: String, studentId: String): TestResponseDTO
+        +findQuestion(testContext: TestResponseDTO, questionId: Long): Optional<QuestionDTO>
+    }
+    
+    interface HintDataProvider <<ISP>> {
+        +getPreviousHintTexts(studentId: Long, questionId: Long): List<String>
+        +getPreviousHints(studentId: Long, questionId: Long): List<AIHint>
+        +saveHint(studentId: Long, questionId: Long, hintText: String): AIHint
+        +getHintHistoryDTOs(studentId: Long, questionId: Long): List<HintResponseDTO>
+        +getHintHistory(studentId: Long, questionId: Long): List<AIHint>
+    }
+    
+    interface ExplanationDataProvider <<ISP>> {
+        +getPreviousExplanations(studentId: Long, materialId: Long): List<AIExplanation>
+        +extractQuestions(explanations: List<AIExplanation>): List<String>
+        +extractAnswers(explanations: List<AIExplanation>): List<String>
+        +saveExplanation(studentId: Long, materialId: Long, question: String, explanation: String): AIExplanation
+        +getExplanationHistory(studentId: Long, materialId: Long): List<AIExplanation>
+        +getExplanationHistoryDTOs(studentId: Long, materialId: Long): List<AIExplainResponseDTO>
+    }
+    
+    interface RecommendationDataProvider <<ISP>> {
+        +saveRecommendation(request: AIMaterialRequest, response: AIResponse): MaterialRecommendationRecord
+        +getRecommendationHistory(studentId: Long, courseId: String): List<MaterialRecommendationRecord>
+    }
+}
+
+package "services.dataprovider.impl" #LightGreen {
+    class CourseDataProviderImpl <<@Component>> {
+        -testProxyClient: TestProxyClient
+        -materialProxyClient: MaterialProxyClient
+        --
+        ..implements CourseDataProvider methods..
+    }
+    
+    class TestDataProviderImpl <<@Component>> {
+        -testProxyClient: TestProxyClient
+        --
+        ..implements TestDataProvider methods..
+    }
+    
+    class HintDataProviderImpl <<@Component>> {
+        -hintRepository: AIHintRepository
+        --
+        ..implements HintDataProvider methods..
+    }
+    
+    class ExplanationDataProviderImpl <<@Component>> {
+        -explanationRepository: AIExplanationRepository
+        --
+        ..implements ExplanationDataProvider methods..
+    }
+    
+    class RecommendationDataProviderImpl <<@Component>> {
+        -recommendationRepository: MaterialRecommendationRepository
+        --
+        ..implements RecommendationDataProvider methods..
+    }
+}
+
+' Implementations
+CourseDataProviderImpl ..|> CourseDataProvider : <<DIP>>
+TestDataProviderImpl ..|> TestDataProvider : <<DIP>>
+HintDataProviderImpl ..|> HintDataProvider : <<DIP>>
+ExplanationDataProviderImpl ..|> ExplanationDataProvider : <<DIP>>
+RecommendationDataProviderImpl ..|> RecommendationDataProvider : <<DIP>>
+
+package "proxy" <<External>> {
+    [TestProxyClient]
+    [MaterialProxyClient]
+}
+
+package "repository" <<External>> {
+    [AIHintRepository]
+    [AIExplanationRepository]
+    [MaterialRecommendationRepository]
+}
+
+' Dependencies
+CourseDataProviderImpl --> [TestProxyClient]
+CourseDataProviderImpl --> [MaterialProxyClient]
+TestDataProviderImpl --> [TestProxyClient]
+HintDataProviderImpl --> [AIHintRepository]
+ExplanationDataProviderImpl --> [AIExplanationRepository]
+RecommendationDataProviderImpl --> [MaterialRecommendationRepository]
+
+note right of CourseDataProvider
+  **SOLID Principles Applied:**
+  
+  **SRP**: Each interface has a single
+  responsibility (course data, test data, etc.)
+  
+  **ISP**: Clients depend only on methods
+  they actually use
+  
+  **DIP**: High-level services depend on
+  these abstractions, not concrete classes
+end note
+
+note bottom of CourseDataProviderImpl
+  Centralizes all external API calls
+  for course/material data
+end note
+
+note bottom of HintDataProviderImpl
+  Centralizes all hint-related
+  database operations
+end note
+
+@enduml
+
+
+@startuml AI-Service-Refactored-Services
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 10
+
+title Refactored Service Layer with DataProviders
+
+package "services.hint" #LightBlue {
+    interface HintService {
+        +hint(request: AIHintRequest): AIResponse
+        +getHintHistory(studentId: Long, questionId: Long): List<HintResponseDTO>
+    }
+    
+    class HintServiceImpl <<@Service, Refactored>> {
+        -hintGenerationTask: HintGenerationTask
+        -hintDataProvider: HintDataProvider
+        -testDataProvider: TestDataProvider
+        -courseDataProvider: CourseDataProvider
+        --
+        +hint(request: AIHintRequest): AIResponse
+        +getHintHistory(studentId: Long, questionId: Long): List<HintResponseDTO>
+    }
+}
+
+package "services.material" #LightCyan {
+    interface IMaterialService {
+        +recommend(request: AIMaterialRequest): AIResponse
+        +explain(request: AIExplainRequest): AIResponse
+        +getExplainHistory(studentId: Long, materialId: Long): List<AIExplainResponseDTO>
+    }
+    
+    class MaterialServiceImpl <<@Service, Refactored>> {
+        -recommendationTask: MaterialRecommendationTask
+        -explanationTask: MaterialExplanationTask
+        -courseDataProvider: CourseDataProvider
+        -explanationDataProvider: ExplanationDataProvider
+        -recommendationDataProvider: RecommendationDataProvider
+        --
+        +recommend(request: AIMaterialRequest): AIResponse
+        +explain(request: AIExplainRequest): AIResponse
+        +getExplainHistory(studentId: Long, materialId: Long): List<AIExplainResponseDTO>
+    }
+}
+
+package "services.dataprovider" #LightYellow {
+    interface CourseDataProvider
+    interface TestDataProvider
+    interface HintDataProvider
+    interface ExplanationDataProvider
+    interface RecommendationDataProvider
+}
+
+package "services.task" #Wheat {
+    [HintGenerationTask]
+    [MaterialRecommendationTask]
+    [MaterialExplanationTask]
+}
+
+' Relationships
+HintServiceImpl ..|> HintService
+MaterialServiceImpl ..|> IMaterialService
+
+HintServiceImpl --> HintGenerationTask : uses
+HintServiceImpl --> CourseDataProvider : <<DIP>>
+HintServiceImpl --> TestDataProvider : <<DIP>>
+HintServiceImpl --> HintDataProvider : <<DIP>>
+
+MaterialServiceImpl --> MaterialRecommendationTask : uses
+MaterialServiceImpl --> MaterialExplanationTask : uses
+MaterialServiceImpl --> CourseDataProvider : <<DIP>>
+MaterialServiceImpl --> ExplanationDataProvider : <<DIP>>
+MaterialServiceImpl --> RecommendationDataProvider : <<DIP>>
+
+note top of HintServiceImpl
+  **Before Refactoring:**
+  - 7+ private helper methods
+  - Direct dependencies on repositories & proxy clients
+  - Violated SRP
+  
+  **After Refactoring:**
+  - No private helper methods for data fetching
+  - Depends on DataProvider abstractions
+  - Follows SRP, DIP, ISP
+end note
+
+note top of MaterialServiceImpl
+  **Before Refactoring:**
+  - 8+ private helper methods
+  - Direct dependencies on repositories & proxy clients
+  - Violated SRP
+  
+  **After Refactoring:**
+  - No private helper methods for data fetching
+  - Depends on DataProvider abstractions
+  - Follows SRP, DIP, ISP
 end note
 
 @enduml
