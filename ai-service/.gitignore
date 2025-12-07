@@ -194,3 +194,6 @@ docker-compose.override.yml
 uploads/
 temp/
 cache/
+
+
+doc/

@@ -5,7 +5,6 @@ import java.util.Optional;
 
 import com.example.demo.dto.TestResponseDTO;
 import com.example.demo.proxy.TestProxyClient;
-import com.example.demo.services.profiles.IStudentProfileService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +27,6 @@ public class TestFeedbackServiceImpl implements ITestFeedbackService {
 
     private final TestFeedbackGenerationTask testFeedbackGenerationTask;
     private final ITestFeedbackHistoryService feedbackHistoryService;
-    private final IStudentProfileService studentProfileService;
     private final TestProxyClient testProxyClient;
 
     @Override
@@ -57,11 +55,6 @@ public class TestFeedbackServiceImpl implements ITestFeedbackService {
                 .build();
 
         feedbackHistoryService.save(record);
-
-        // Update student profile if student ID is provided
-        if (request.getStudentId() != null) {
-            studentProfileService.updateProfileFromFeedback(request.getStudentId());
-        }
 
         return response;
     }
